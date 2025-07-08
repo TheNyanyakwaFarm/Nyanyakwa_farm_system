@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block title %}Edit Milk Record{% endblock %}
+
+{% block content %}
+<h2 style="text-align:center; color: #1565c0;">Edit Milk Record</h2>
+
+<form method="POST" style="width: 400px; margin: auto;">
+    <label>Morning Milk:</label>
+    <input type="number" name="morning_milk" value="{{ record['morning_milk'] }}">
+
+    <label>Mid Day Milk:</label>
+    <input type="number" name="mid_day_milk" value="{{ record['mid_day_milk'] }}">
+
+    <label>Evening Milk:</label>
+    <input type="number" name="evening_milk" value="{{ record['evening_milk'] }}">
+
+    <button type="submit">Update Record</button>
+</form>
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block title %}Record Milk - Nyanyakwa Dairy Farm{% endblock %}
+
+{% block content %}
+    <h2 style="text-align: center; color: #2e7d32;">Record Milk Production</h2>
+
+    <form method="POST">
+        <label>Select Cow:</label>
+        <select name="cattle_id" required>
+            {% for cow in cattle_list %}
+                <option value="{{ cow['cattle_id'] }}">{{ cow['tag_number'] }}</option>
+            {% endfor %}
+        </select><br><br>
+
+        <label>Date:</label>
+        <input type="date" name="date" required><br><br>
+
+        <label>Session:</label>
+        <select name="session" id="session" onchange="showMilkInput()" required>
+            <option value="">-- Select Session --</option>
+            <option value="morning">Morning</option>
+            <option value="mid_day">Mid-day</option>
+            <option value="evening">Evening</option>
+        </select><br><br>
+
+        <div id="morning_input" style="display:none;">
+            <label>Morning Milk (L):</label>
+            <input type="number" step="0.01" name="morning_milk"><br><br>
+        </div>
+
+        <div id="mid_day_input" style="display:none;">
+            <label>Mid-day Milk (L):</label>
+            <input type="number" step="0.01" name="mid_day_milk"><br><br>
+        </div>
+
+        <div id="evening_input" style="display:none;">
+            <label>Evening Milk (L):</label>
+            <input type="number" step="0.01" name="evening_milk"><br><br>
+        </div>
+
+        <label>Notes (optional):</label>
+        <textarea name="notes" rows="3" cols="40"></textarea><br><br>
+
+        <button type="submit">💾 Save Record</button>
+    </form>
+
+    <script>
+        function showMilkInput() {
+            const session = document.getElementById('session').value;
+            document.getElementById('morning_input').style.display = 'none';
+            document.getElementById('mid_day_input').style.display = 'none';
+            document.getElementById('evening_input').style.display = 'none';
+
+            if (session === 'morning') {
+                document.getElementById('morning_input').style.display = 'block';
+            } else if (session === 'mid_day') {
+                document.getElementById('mid_day_input').style.display = 'block';
+            } else if (session === 'evening') {
+                document.getElementById('evening_input').style.display = 'block';
+            }
+        }
+    </script>
+{% endblock %}

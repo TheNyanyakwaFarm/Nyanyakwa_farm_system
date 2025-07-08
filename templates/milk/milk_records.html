@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block title %}Milk Records{% endblock %}
+
+{% block content %}
+<h2 style="text-align:center; color: #2e7d32;">Milk Records</h2>
+
+<form method="POST" style="text-align: center;">
+    <label for="cow_id">Select Cow:</label>
+    <select name="cow_id">
+        <option value="">-- All Cows --</option>
+        {% for cow in cows %}
+            <option value="{{ cow['cattle_id'] }}">
+                {{ cow['name'] }} ({{ cow['tag_number'] }})
+            </option>
+        {% endfor %}
+    </select>
+
+    <label for="date">Select Date:</label>
+    <input type="date" name="date">
+
+    <button type="submit">Filter</button>
+</form>
+
+<table border="1" style="width: 90%; margin: auto; margin-top: 20px; border-collapse: collapse;">
+    <tr style="background-color: #a5d6a7;">
+        <th>ID</th>
+        <th>Cow</th>
+        <th>Date</th>
+        <th>Morning</th>
+        <th>Midday</th>
+        <th>Evening</th>
+        <th>Total</th>
+        <th>Actions</th>
+    </tr>
+    {% for record in records %}
+    <tr>
+        <td>{{ record['id'] }}</td>
+        <td>{{ record['name'] }} ({{ record['tag_number'] }})</td>
+        <td>{{ record['date'] }}</td>
+        <td>{{ record['morning_milk'] or 0 }}</td>
+        <td>{{ record['mid_day_milk'] or 0 }}</td>
+        <td>{{ record['evening_milk'] or 0 }}</td>
+        <td>{{ (record['morning_milk'] or 0) + (record['mid_day_milk'] or 0) + (record['evening_milk'] or 0) }}</td>
+        <td>
+            <a href="{{ url_for('milk.edit_milk_record', record_id=record['id']) }}">Edit</a> |
+            <a href="{{ url_for('milk.delete_milk_record', record_id=record['id']) }}" onclick="return confirm('Are you sure you want to delete this record?');">Delete</a>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}

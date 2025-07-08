@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block title %}Welcome to The Nyanyakwa Dairy Farm{% endblock %}
+
+{% block content %}
+<div style="text-align: center; padding: 20px;">
+    <h1 style="color: #2e7d32;">🐄 Welcome to The Nyanyakwa Dairy Farm</h1>
+	
+
+    <img src="{{ url_for('static', filename='images/farm_banner.jpg') }}" 
+         alt="Nyanyakwa Farm Banner" 
+         style="max-width: 90%; height: auto; border-radius: 10px; margin-top: 20px;">
+
+    <p style="font-size: 18px; margin-top: 30px;">
+        This system is designed to help manage your dairy farm with ease. Track cattle, record milk, monitor health, and plan breeding — all from one place.
+    </p>
+
+    <hr style="margin: 30px 0;">
+
+    <h2 style="color: #1a237e;">🚀 System Features</h2>
+    <ul style="list-style-type: none; font-size: 18px; padding-left: 0;">
+        <li>✅ Add & View Cattle Records</li>
+        <li>✅ Record Daily Milk Production</li>
+        <li>✅ Monitor Breeding and Health Logs</li>
+        <li>✅ Generate Reports Per Cow or Period</li>
+        <li>✅ Secure Login for Staff</li>
+    </ul>
+
+    <hr style="margin: 30px 0;">
+
+    <h3 style="color: #388e3c;">🧑‍🌾 About Us</h3>
+	<h3 style="color: #388e3c;">🧑‍ Farming With Eas 🧑‍ </h3>
+    <p style="font-size: 16px; max-width: 600px; margin: auto;"> 
+        The Nyanyakwa Dairy Farm is committed to innovation in agriculture. Our farm blends traditional care with modern systems to boost productivity and traceability.
+    </p>
+
+    <h3 style="margin-top: 30px;">📞 Contact</h3>
+    <p>Email: <a href="mailto:nyanyakwafarm@example.com">kibettkipz@gmail.com</a></p>
+    <p>Phone: +254 702934574</p>
+	<p>Phone: +254 724952443</p>
+	<p>Phone: +254 704565155</p>
+
+    {% if session['user_id'] %}
+        <p style="margin-top: 20px; color: #00796b;">Welcome back, <strong>{{ session['username'] }}</strong>!</p>
+        <a href="{{ url_for('dashboard.dashboard') }}" style="font-size: 18px;">🔧 Go to Dashboard</a>
+    {% else %}
+        <a href="{{ url_for('auth.login') }}" style="font-size: 18px; margin-top: 20px; display: inline-block;">🔐 Login to Access the System</a>
+    {% endif %}
+</div>
+{% endblock %}

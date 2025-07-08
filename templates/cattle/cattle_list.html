@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+{% block title %}Cattle List - Nyanyakwa Dairy Farm{% endblock %}
+
+{% block content %}
+<h1 style="text-align: center; color: #2e7d32;">📋 Cattle List</h1>
+
+<!-- 🔍 Filter Form -->
+<form method="get" style="margin-bottom: 20px; text-align: center;">
+    <label for="sex">Sex:</label>
+    <select name="sex" id="sex">
+        <option value="">All</option>
+        <option value="M" {% if request.args.get('sex') == 'M' %}selected{% endif %}>Male</option>
+        <option value="F" {% if request.args.get('sex') == 'F' %}selected{% endif %}>Female</option>
+    </select>
+
+    <label for="status_category">Status Category:</label>
+    <select name="status_category" id="status_category">
+        <option value="">All</option>
+        <option value="bull" {% if request.args.get('status_category') == 'bull' %}selected{% endif %}>Bull</option>
+        <option value="young_stock" {% if request.args.get('status_category') == 'young_stock' %}selected{% endif %}>Young Stock</option>
+        <option value="mature_stock" {% if request.args.get('status_category') == 'mature_stock' %}selected{% endif %}>Mature Stock</option>
+    </select>
+
+    <button type="submit">🔎 Filter</button>
+</form>
+
+<!-- 🔎 Search Box -->
+<div style="text-align: center; margin-bottom: 20px;">
+    <input type="text" id="searchInput" placeholder="Search by name, tag number, breed..." style="padding: 5px; width: 300px;">
+</div>
+
+<!-- 📄 Cattle Table -->
+<table id="cattleTable" border="1" style="width: 100%; border-collapse: collapse;">
+    <thead style="background-color: #f0f0f0; cursor: pointer;">
+        <tr>
+            <th onclick="sortTable(0)">ID ⬍</th>
+            <th onclick="sortTable(1)">Name ⬍</th>
+            <th onclick="sortTable(2)">Tag Number ⬍</th>
+            <th onclick="sortTable(3)">Breed ⬍</th>
+            <th onclick="sortTable(4)">Birth Date ⬍</th>
+            <th onclick="sortTable(5)">Sex ⬍</th>
+            <th onclick="sortTable(6)">Status Category ⬍</th>
+            <th onclick="sortTable(7)">Status ⬍</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="cattleBody">
+        {% for cow in cattle %}
+        <tr>
+            <td>{{ cow['cattle_id'] }}</td>
+            <td>{{ cow['name'] or '-' }}</td>
+            <td>{{ cow['tag_number'] }}</td>
+            <td>{{ cow['breed'] or '-' }}</td>
+            <td>{{ cow['birth_date'] or '-' }}</td>
+            <td>{{ 'Male' if cow['sex'] == 'M' else 'Female' }}</td>
+            <td>{{ cow['status_category'].replace('_', ' ').title() if cow['status_category'] else '-' }}</td>
+            <td>{{ cow['status'].replace('_', ' ').title() if cow['status'] else '-' }}</td>
+            <td>
+                <a href="{{ url_for('cattle.edit_cattle', cattle_id=cow['cattle_id']) }}">✏️ Edit</a> |
+                <a href="{{ url_for("cattle.delete_cattle", cattle_id=cow['cattle_id']) }}" onclick="return confirm('Are you sure?')">🗑️ Delete</a>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="9" style="text-align: center;">No cattle found.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<script>
+    // 🔁 Sort table columns
+    function sortTable(n) {
+        const table = document.getElementById("cattleTable");
+        let switching = true, dir = "asc", switchcount = 0;
+
+        while (switching) {
+            switching = false;
+            const rows = table.rows;
+            for (let i = 1; i < rows.length - 1; i++) {
+                let shouldSwitch = false;
+                const x = rows[i].getElementsByTagName("TD")[n];
+                const y = rows[i + 1].getElementsByTagName("TD")[n];
+
+                const xContent = x.innerText.toLowerCase();
+                const yContent = y.innerText.toLowerCase();
+
+                if ((dir == "asc" && xContent > yContent) || (dir == "desc" && xContent < yContent)) {
+                    shouldSwitch = true;
+                    break;
+                }
+            }
+
+            if (shouldSwitch) {
+                rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                switching = true;
+                switchcount++;
+            } else {
+                if (switchcount === 0 && dir === "asc") {
+                    dir = "desc";
+                    switching = true;
+                }
+            }
+        }
+    }
+
+    // 🔎 Live search filter
+    document.getElementById("searchInput").addEventListener("keyup", function () {
+        const filter = this.value.toLowerCase();
+        const rows = document.getElementById("cattleBody").getElementsByTagName("tr");
+
+        for (let i = 0; i < rows.length; i++) {
+            const cells = rows[i].getElementsByTagName("td");
+            let match = false;
+
+            for (let j = 1; j <= 3; j++) {
+                if (cells[j].innerText.toLowerCase().includes(filter)) {
+                    match = true;
+                    break;
+                }
+            }
+
+            rows[i].style.display = match ? "" : "none";
+        }
+    });
+</script>
+{% endblock %}

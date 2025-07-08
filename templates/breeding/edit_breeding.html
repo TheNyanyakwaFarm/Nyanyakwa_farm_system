@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Breeding Record - Nyanyakwa Dairy Farm{% endblock %}
+
+{% block content %}
+<h2 style="text-align: center; color: #2e7d32;">✏️ Edit Breeding Record</h2>
+
+<form method="post" style="max-width: 600px; margin: auto;">
+  <!-- ✅ Read-only Cattle Info -->
+  <label>Cattle Name:</label>
+  <input type="text" value="{{ record['cattle_name'] }}" disabled><br><br>
+
+  <label>Tag Number:</label>
+  <input type="text" value="{{ record['tag_number'] }}" disabled><br><br>
+
+  <!-- Hidden field to retain cattle_id -->
+  <input type="hidden" name="cattle_id" value="{{ record['cattle_id'] }}">
+
+  <label for="method">Breeding Method:</label>
+  <select name="method" id="method" required>
+    <option value="">-- Select Method --</option>
+    <option value="Natural" {% if record['method'] == 'Natural' %}selected{% endif %}>Natural Mating</option>
+    <option value="AI" {% if record['method'] == 'AI' %}selected{% endif %}>Artificial Insemination</option>
+  </select><br><br>
+
+  <!-- AI-specific Fields -->
+  <div id="aiFields" style="display: none;">
+    <label for="semen_type">Semen Type:</label>
+    <select name="semen_type" id="semen_type">
+      <option value="">-- Select Type --</option>
+      <option value="Conventional" {% if record['semen_type'] == 'Conventional' %}selected{% endif %}>Conventional</option>
+      <option value="Sexed" {% if record['semen_type'] == 'Sexed' %}selected{% endif %}>Sexed</option>
+    </select><br><br>
+
+    <label for="semen_price">Semen Price (KES):</label>
+    <input type="number" step="0.01" name="semen_price" id="semen_price" value="{{ record['semen_price'] or '' }}"><br><br>
+
+    <label for="semen_batch_number">Batch Number:</label>
+    <input type="text" name="semen_batch_number" id="semen_batch_number" value="{{ record['semen_batch_number'] or '' }}"><br><br>
+
+    <label for="sire_name">Sire Name:</label>
+    <input type="text" name="sire_name" id="sire_name" value="{{ record['sire_name'] or '' }}"><br><br>
+  </div>
+
+  <label for="breeding_date">Breeding Date:</label>
+  <input type="date" name="breeding_date" id="breeding_date" value="{{ record['breeding_date'] }}" required><br><br>
+
+  <label for="breeding_attempt_number">Attempt Number:</label>
+  <input type="number" name="breeding_attempt_number" id="breeding_attempt_number" value="{{ record['breeding_attempt_number'] }}" required min="1"><br><br>
+
+  <label for="notes">Notes (Optional):</label>
+  <textarea name="notes" id="notes" rows="3" style="width: 100%;">{{ record['notes'] or '' }}</textarea><br><br>
+
+  <button type="submit">💾 Update Record</button>
+</form>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const methodSelect = document.getElementById('method');
+    const aiFields = document.getElementById('aiFields');
+    const aiInputs = aiFields.querySelectorAll('input, select');
+
+    function toggleAIFields() {
+      const isAI = methodSelect.value === 'AI';
+      aiFields.style.display = isAI ? 'block' : 'none';
+      aiInputs.forEach(input => input.required = isAI);
+    }
+
+    methodSelect.addEventListener('change', toggleAIFields);
+    toggleAIFields();  // Run on page load
+  });
+</script>
+{% endblock %}
