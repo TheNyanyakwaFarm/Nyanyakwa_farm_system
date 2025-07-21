@@ -1,22 +1,24 @@
+import sqlite3
 import psycopg2
+import psycopg2.extras
 import os
-from flask import g
-
-# Get the PostgreSQL URL from the Render environment
-DATABASE_URL = os.environ.get("DATABASE_URL", "dbname=dairy_farm user=postgres password=localpass")
+from flask import g, current_app
 
 def get_db():
-    """
-    Opens a new PostgreSQL connection if one does not exist for the current app context.
-    """
     if 'db' not in g:
-        g.db = psycopg2.connect(DATABASE_URL)
+        db_url = current_app.config.get('DATABASE_URL') or os.getenv('DATABASE_URL')
+        if db_url.startswith('postgresql'):
+            g.db = psycopg2.connect(db_url, cursor_factory=psycopg2.extras.RealDictCursor)
+        else:
+            g.db = sqlite3.connect(db_url)
+            g.db.row_factory = sqlite3.Row
     return g.db
 
+def get_cursor():
+    db = get_db()
+    return db.cursor()
+
 def close_db(e=None):
-    """
-    Closes the PostgreSQL connection at the end of the request or app context.
-    """
     db = g.pop('db', None)
     if db is not None:
         db.close()

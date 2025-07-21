@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block title %}Welcome to Nyanyakwa Dairy Farm{% endblock %}
+
+{% block content %}
+<div style="text-align: center; padding: 20px;">
+    <h1 style="color: #2e7d32;">🐄 Welcome to Nyanyakwa Dairy Farm</h1>
+
+    <img src="{{ url_for('static', filename='images/farm_banner.jpg') }}" 
+         alt="Nyanyakwa Farm Banner" 
+         style="max-width: 90%; height: auto; border-radius: 10px; margin-top: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+
+    <p style="font-size: 18px; margin-top: 30px; max-width: 700px; margin-left: auto; margin-right: auto;">
+        This system helps manage your dairy farm efficiently — track cattle, record milk, monitor health, and manage breeding — all in one place.
+    </p>
+
+    <hr style="margin: 40px auto; width: 60%;">
+
+    <h2 style="color: #1a237e;">🚀 Key System Features</h2>
+    <ul style="list-style-type: none; font-size: 18px; padding-left: 0; max-width: 500px; margin: auto; text-align: left;">
+        <li>✅ Add & View Cattle Records</li>
+        <li>✅ Record Daily Milk Production</li>
+        <li>✅ Monitor Breeding and Health Logs</li>
+        <li>✅ Generate Reports per Cow or Period</li>
+        <li>✅ Secure Login System for Staff</li>
+    </ul>
+
+    <hr style="margin: 40px auto; width: 60%;">
+
+    <h3 style="color: #388e3c;">🧑‍🌾 About Us</h3>
+    <p style="font-size: 16px; max-width: 600px; margin: auto;"> 
+        Nyanyakwa Dairy Farm is committed to innovation in agriculture. We combine traditional animal care with modern digital tools to improve productivity and traceability.
+    </p>
+
+    <h3 style="color: #388e3c; margin-top: 30px;">🌱 Farming Made Easy</h3>
+    <p style="font-size: 16px; max-width: 600px; margin: auto;">
+        Our mission is to make livestock management easier, smarter, and more profitable for local farmers and producers.
+    </p>
+
+    <hr style="margin: 40px auto; width: 60%;">
+
+    <h3>📞 Contact Us</h3>
+    <p>Email: <a href="mailto:kibettkipz@gmail.com">kibettkipz@gmail.com</a></p>
+    <p>Phone 1: +254 702 934 574</p>
+    <p>Phone 2: +254 724 952 443</p>
+    <p>Phone 3: +254 704 565 155</p>
+
+    {% if session['user_id'] %}
+        <p style="margin-top: 20px; color: #00796b;">Welcome back, <strong>{{ session['username'] }}</strong>!</p>
+        <a href="{{ url_for('dashboard.dashboard') }}" style="font-size: 18px; text-decoration: none; color: #1b5e20;">🔧 Go to Dashboard</a>
+    {% else %}
+        <a href="{{ url_for('auth.login') }}" style="font-size: 18px; margin-top: 20px; display: inline-block; color: #1565c0;">🔐 Login to Access the System</a>
+    {% endif %}
+</div>
+{% endblock %}

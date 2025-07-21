@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title %}Edit Calving Record{% endblock %}
+
+{% block content %}
+<h2 style="text-align: center; color: #2e7d32;">✏️ Edit Calving Record</h2>
+
+<form method="POST" style="max-width: 600px; margin: auto;">
+  {{ csrf_token() }}
+
+  <label>Dam Tag Number:</label>
+  <select name="dam_tag_number" required onchange="fillDamName(this.value)" style="width:100%; padding:8px; margin-bottom: 12px;">
+    <option value="">-- Select Dam --</option>
+    {% for dam in dams %}
+      <option value="{{ dam.tag_number }}" {% if dam.tag_number == record['dam_tag_number'] %}selected{% endif %}>
+        {{ dam.tag_number }}
+      </option>
+    {% endfor %}
+  </select>
+
+  <label>Dam Name:</label>
+  <input type="text" name="dam_name" id="dam_name" value="{{ record['dam_name'] }}" readonly required style="width:100%; padding:8px; margin-bottom: 12px;">
+
+  <label>Calf Name:</label>
+  <input type="text" name="calf_name" value="{{ record['calf_name'] }}" required style="width:100%; padding:8px; margin-bottom: 12px;">
+
+  <label>Calf Sex:</label>
+  <select name="calf_sex" required style="width:100%; padding:8px; margin-bottom: 12px;">
+    <option value="">-- Select --</option>
+    <option value="Male" {% if record['calf_sex'] == 'Male' %}selected{% endif %}>Male</option>
+    <option value="Female" {% if record['calf_sex'] == 'Female' %}selected{% endif %}>Female</option>
+  </select>
+
+  <label>Birth Date:</label>
+  <input type="date" name="birth_date" value="{{ record['birth_date'] }}" required style="width:100%; padding:8px; margin-bottom: 12px;">
+
+  <label>Breed:</label>
+  <input type="text" name="breed" value="{{ record['breed'] }}" required style="width:100%; padding:8px; margin-bottom: 12px;">
+
+  <label>Calf Status:</label>
+  <select name="calf_status" required style="width:100%; padding:8px; margin-bottom: 12px;">
+    <option value="">-- Select --</option>
+    <option value="Alive" {% if record['calf_status'] == 'Alive' %}selected{% endif %}>Alive</option>
+    <option value="Dead" {% if record['calf_status'] == 'Dead' %}selected{% endif %}>Dead</option>
+    <option value="Stillbirth" {% if record['calf_status'] == 'Stillbirth' %}selected{% endif %}>Stillbirth</option>
+  </select>
+
+  <label>Notes:</label>
+  <textarea name="notes" rows="3" style="width:100%; padding:8px; margin-bottom: 20px;">{{ record['notes'] }}</textarea>
+
+  <button type="submit" style="padding:10px 20px; background-color: #2e7d32; color: white; border: none; border-radius: 5px;">
+    💾 Update Record
+  </button>
+  <a href="{{ url_for('calving.calving_list') }}" style="margin-left: 15px; color: #3949ab;">← Cancel</a>
+</form>
+
+<script>
+  const damMap = {
+    {% for dam in dams %}
+      "{{ dam.tag_number }}": "{{ dam.name }}",
+    {% endfor %}
+  };
+
+  function fillDamName(tag) {
+    document.getElementById('dam_name').value = damMap[tag] || '';
+  }
+
+  // Fill dam name on initial load
+  window.onload = function () {
+    const tag = document.querySelector('[name="dam_tag_number"]').value;
+    fillDamName(tag);
+  };
+</script>
+{% endblock %}

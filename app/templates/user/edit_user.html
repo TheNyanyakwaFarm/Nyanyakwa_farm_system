@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit User{% endblock %}
+
+{% block content %}
+<h2 style="text-align: center; color: #1a237e;">✏️ Edit User</h2>
+
+<form method="POST" style="width: 60%; margin: auto;">
+    {{ csrf_token() }}
+
+    <label>Username:</label><br>
+    <input type="text" name="username" value="{{ user['username'] }}" required><br><br>
+
+    <label>First Name:</label><br>
+    <input type="text" name="first_name" value="{{ user['first_name'] }}"><br><br>
+
+    <label>Last Name:</label><br>
+    <input type="text" name="last_name" value="{{ user['last_name'] }}"><br><br>
+
+    <label>National ID:</label><br>
+    <input type="text" name="national_id" value="{{ user['national_id'] }}"><br><br>
+
+    <label>Address:</label><br>
+    <input type="text" name="address" value="{{ user['address'] }}"><br><br>
+
+    <label>Age:</label><br>
+    <input type="number" name="age" value="{{ user['age'] }}"><br><br>
+
+    <label>Qualification:</label><br>
+    <input type="text" name="qualification" value="{{ user['qualification'] }}"><br><br>
+
+    <label for="role">Role:</label><br>
+    <select name="role" id="role" required>
+        <option value="admin" {% if user['role'] == 'admin' %}selected{% endif %}>Admin</option>
+        <option value="manager" {% if user['role'] == 'manager' %}selected{% endif %}>Manager</option>
+        <option value="user" {% if user['role'] == 'user' %}selected{% endif %}>User</option>
+    </select><br><br>
+
+    <button type="submit">Save Changes</button>
+</form>
+{% endblock %}
