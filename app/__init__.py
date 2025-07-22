@@ -3,7 +3,7 @@ from flask import Flask, render_template, session, redirect, url_for, flash, req
 from functools import wraps
 from dotenv import load_dotenv
 
-# Load environment variables from .env (only for local dev)
+# Load environment variables from .env (only locally)
 load_dotenv()
 
 # Configuration classes
@@ -21,6 +21,7 @@ from app.routes.breeding import breeding_bp
 from app.routes.calving import calving_bp
 from app.routes.milk import milk_bp
 
+
 def create_app():
     app = Flask(
         __name__,
@@ -28,7 +29,7 @@ def create_app():
         static_folder='static'
     )
 
-    # Choose config based on FLASK_ENV
+    # Select environment config
     if os.environ.get("FLASK_ENV") == "production":
         app.config.from_object(ProductionConfig)
     else:
@@ -38,14 +39,14 @@ def create_app():
     if app.config["SECRET_KEY"] == "dev_secret_key" and not app.config.get("DEBUG"):
         print("⚠️ WARNING: You are using the default secret key in production! Set a secure SECRET_KEY.")
 
-    # Initialize extensions
+    # Initialize Flask extensions
     mail.init_app(app)
     csrf.init_app(app)
 
     # Register blueprints
     register_blueprints(app)
 
-    # Custom error pages
+    # Custom error handlers
     @app.errorhandler(404)
     def not_found_error(error):
         return render_template("404.html"), 404
