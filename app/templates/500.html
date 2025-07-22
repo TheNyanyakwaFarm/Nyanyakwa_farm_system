@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>500 - Internal Server Error</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 80px;
+            background-color: #f8f8f8;
+        }
+        h1 {
+            font-size: 48px;
+            color: #b71c1c;
+        }
+        p {
+            font-size: 20px;
+            margin-top: 20px;
+        }
+        a {
+            margin-top: 30px;
+            display: inline-block;
+            text-decoration: none;
+            color: white;
+            background-color: #1a237e;
+            padding: 10px 20px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>500 - Internal Server Error</h1>
+    <p>Something went wrong on the server. Please try again later.</p>
+    <a href="{{ url_for('dashboard.dashboard') }}">🔙 Back to Home</a>
+</body>
+</html>

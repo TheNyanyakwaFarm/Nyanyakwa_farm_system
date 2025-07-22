@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<h2 style="text-align:center; color: #1565c0; margin-bottom: 24px;">🔐 Login to Nyanyakwa Dairy System</h2>
+
+<form method="POST" style="max-width: 400px; margin: auto; padding: 20px; border: 1px solid #ccc; border-radius: 10px; background: #fdfdfd;">
+    {{ csrf_token() }}
+
+    <div style="margin-bottom: 15px;">
+        <label for="username" style="font-weight: bold;">Username:</label>
+        <input type="text" id="username" name="username" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc;">
+    </div>
+
+    <div style="margin-bottom: 20px;">
+        <label for="password" style="font-weight: bold;">Password:</label>
+        <input type="password" id="password" name="password" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc;">
+    </div>
+
+    <button type="submit" style="width: 100%; padding: 10px; background-color: #1565c0; color: white; border: none; border-radius: 6px;">
+        🔓 Login
+    </button>
+</form>
+
+<p style="text-align:center; margin-top:15px;">
+  <a href="{{ url_for('auth.forgot_password') }}" style="color: #1565c0;">Forgot Password?</a>
+</p>
+
+<!-- 🔔 Flash messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div style="max-width: 400px; margin: 20px auto;">
+      {% for category, message in messages %}
+        <div style="
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            color: {% if category == 'success' %}#155724{% elif category == 'danger' %}#721c24{% else %}#856404{% endif %};
+            background-color: {% if category == 'success' %}#d4edda{% elif category == 'danger' %}#f8d7da{% else %}#fff3cd{% endif %};
+            border: 1px solid {% if category == 'success' %}#c3e6cb{% elif category == 'danger' %}#f5c6cb{% else %}#ffeeba{% endif %};
+        ">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+{% endblock %}

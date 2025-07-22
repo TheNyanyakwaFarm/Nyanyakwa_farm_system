@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block title %}👤 Profile - Nyanyakwa Farm{% endblock %}
+
+{% block content %}
+<h2 style="display: flex; justify-content: space-between; align-items: center;">
+    👤 My Profile
+    <a href="{{ url_for('user.edit_profile') }}" style="font-size: 14px; background: #1a237e; color: white; padding: 6px 12px; border-radius: 5px; text-decoration: none;">
+        ✏️ Edit Profile
+    </a>
+</h2>
+
+{% if user.profile_pic %}
+    <div style="text-align: center; margin-top: 20px;">
+        <img src="{{ url_for('static', filename='uploads/' ~ user.profile_pic) }}" alt="Profile Picture" style="width: 120px; height: 120px; border-radius: 50%; border: 3px solid #1a237e;">
+    </div>
+{% endif %}
+
+<table border="1" cellpadding="8" cellspacing="0" style="background-color: white; margin-top: 20px; width: 100%;">
+    <tr><th>Username</th><td>{{ user.username }}</td></tr>
+    <tr><th>First Name</th><td>{{ user.first_name or 'N/A' }}</td></tr>
+    <tr><th>Last Name</th><td>{{ user.last_name or 'N/A' }}</td></tr>
+    <tr><th>Email</th><td>{{ user.email or 'N/A' }}</td></tr>
+    <tr><th>Phone</th><td>{{ user.phone or 'N/A' }}</td></tr>
+    <tr><th>National ID</th><td>{{ user.national_id or 'N/A' }}</td></tr>
+    <tr><th>Role</th><td>{{ user.role or 'N/A' }}</td></tr>
+    <tr><th>Age</th><td>{{ user.age or 'N/A' }}</td></tr>
+    <tr><th>Address</th><td>{{ user.address or 'N/A' }}</td></tr>
+    <tr><th>Qualification</th><td>{{ user.qualification or 'N/A' }}</td></tr>
+</table>
+{% endblock %}
