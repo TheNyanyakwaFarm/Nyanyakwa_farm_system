@@ -30,27 +30,34 @@ def role_required(*roles):
         return decorated_function
     return decorator
 
-# ✅ Admin shortcut
 admin_required = role_required('admin')
 
+# 🟢 Show complete profile popup flag (triggered after login)
+@user_bp.before_app_request
+def check_profile_completion():
+    if 'user_id' in session and 'show_complete_profile_popup' not in session:
+        cursor = get_cursor()
+        cursor.execute("SELECT first_name, last_name, email, phone FROM users WHERE id = %s", (session['user_id'],))
+        user = cursor.fetchone()
+        if not all([user['first_name'], user['last_name'], user['email'], user['phone']]):
+            session['show_complete_profile_popup'] = True
 
-# 👤 User Profile
+# 👤 View own profile
 @user_bp.route('/profile')
 @login_required
 def profile():
     cursor = get_cursor()
-    cursor.execute('SELECT * FROM users WHERE id = %s', (session['user_id'],))
+    cursor.execute("SELECT * FROM users WHERE id = %s", (session['user_id'],))
     user = cursor.fetchone()
     return render_template('user/profile.html', user=user)
 
-
-# ⚙️ User Settings Page (Password Change)
+# ⚙️ Change password
 @user_bp.route('/settings', methods=['GET', 'POST'])
 @login_required
 def settings():
     db = get_db()
     cursor = get_cursor()
-    cursor.execute('SELECT * FROM users WHERE id = %s', (session['user_id'],))
+    cursor.execute("SELECT * FROM users WHERE id = %s", (session['user_id'],))
     user = cursor.fetchone()
 
     if request.method == 'POST':
@@ -60,135 +67,150 @@ def settings():
 
         if not check_password_hash(user['password'], current_password):
             flash('Current password is incorrect.', 'danger')
-            return render_template('user/settings.html', user=user)
-
-        if new_password != confirm_password:
+        elif new_password != confirm_password:
             flash('New passwords do not match.', 'danger')
-            return render_template('user/settings.html', user=user)
-
-        hashed = generate_password_hash(new_password)
-        cursor.execute('UPDATE users SET password = %s WHERE id = %s', (hashed, session['user_id']))
-        db.commit()
-        flash('Password updated successfully.', 'success')
-        return redirect(url_for('user.settings'))
+        else:
+            hashed = generate_password_hash(new_password)
+            cursor.execute("UPDATE users SET password = %s WHERE id = %s", (hashed, session['user_id']))
+            db.commit()
+            flash('Password updated successfully.', 'success')
+            return redirect(url_for('user.settings'))
 
     return render_template('user/settings.html', user=user)
 
-
-# 👥 Manage Users (Admin Only)
-@user_bp.route('/manage_users')
+# 👥 Manage Users (uses user_list.html)
+@user_bp.route('/manage_users', methods=['GET'])
 @login_required
 @admin_required
 def manage_users():
     cursor = get_cursor()
-    cursor.execute('SELECT * FROM users')
+    search = request.args.get('search', '').strip()
+    role = request.args.get('role', '')
+    page = int(request.args.get('page', 1))
+    per_page = 10
+
+    query = "SELECT * FROM users WHERE 1=1"
+    params = []
+
+    if search:
+        query += " AND (username ILIKE %s OR email ILIKE %s OR first_name ILIKE %s OR last_name ILIKE %s)"
+        term = f"%{search}%"
+        params.extend([term, term, term, term])
+
+    if role:
+        query += " AND role = %s"
+        params.append(role)
+
+    query += " ORDER BY id DESC LIMIT %s OFFSET %s"
+    params.extend([per_page, (page - 1) * per_page])
+    cursor.execute(query, tuple(params))
     users = cursor.fetchall()
-    return render_template('manage_users.html', users=users)
 
+    # Count total users for pagination
+    count_query = "SELECT COUNT(*) FROM users WHERE 1=1"
+    count_params = params[:-2] if len(params) >= 2 else params
+    cursor.execute(count_query + query[23:query.find("ORDER")], tuple(count_params))
+    total_users = cursor.fetchone()[0]
+    total_pages = (total_users + per_page - 1) // per_page
 
-# ✏️ Edit User
-@user_bp.route('/edit_user/<int:user_id>', methods=['GET', 'POST'])
-@login_required
-@admin_required
-def edit_user(user_id):
-    db = get_db()
-    cursor = get_cursor()
-    cursor.execute('SELECT * FROM users WHERE id = %s', (user_id,))
-    user = cursor.fetchone()
+    return render_template('user/user_list.html', users=users, current_page=page, total_pages=total_pages)
 
-    if not user:
-        flash('User not found.', 'danger')
-        return redirect(url_for('user.manage_users'))
-
-    if request.method == 'POST':
-        username = request.form['username']
-        role = request.form['role']
-        first_name = request.form['first_name']
-        last_name = request.form['last_name']
-        age = request.form['age']
-        national_id = request.form['national_id']
-        address = request.form['address']
-        qualification = request.form['qualification']
-
-        try:
-            age = int(age) if age.strip() else None
-        except ValueError:
-            flash('Invalid age. Please enter a number.', 'danger')
-            return render_template("user/edit_user.html", user=user)
-
-        cursor.execute("""
-            UPDATE users 
-            SET username = %s, role = %s, first_name = %s, last_name = %s, 
-                age = %s, national_id = %s, address = %s, qualification = %s
-            WHERE id = %s
-        """, (username, role, first_name, last_name, age, national_id, address, qualification, user_id))
-        db.commit()
-        flash('User updated successfully.', 'success')
-        return redirect(url_for('user.manage_users'))
-
-    return render_template("user/edit_user.html", user=user)
-
-
-# ❌ Delete User
-@user_bp.route('/delete_user/<int:user_id>', methods=['POST'])
-@login_required
-@admin_required
-def delete_user(user_id):
-    db = get_db()
-    cursor = get_cursor()
-    cursor.execute('DELETE FROM users WHERE id = %s', (user_id,))
-    db.commit()
-    flash('User deleted successfully.', 'success')
-    return redirect(url_for('user.manage_users'))
-
-
-# ➕ Add User
-@user_bp.route('/add_user', methods=['GET', 'POST'])
+# ➕ Add user
+@user_bp.route('/add_user', methods=['POST'])
 @login_required
 @admin_required
 def add_user():
-    if request.method == 'POST':
-        username = request.form['username']
-        raw_password = request.form['password']
-        password = generate_password_hash(raw_password)
-        role = request.form['role']
-        first_name = request.form.get('first_name')
-        last_name = request.form.get('last_name')
-        age = request.form.get('age')
-        national_id = request.form.get('national_id')
-        address = request.form.get('address')
-        qualification = request.form.get('qualification')
-        email = request.form.get('email')
-        phone = request.form.get('phone')
+    db = get_db()
+    cursor = get_cursor()
 
-        db = get_db()
-        cursor = get_cursor()
-        cursor.execute('''
-            INSERT INTO users (
-                username, password, role,
-                first_name, last_name, age, national_id, address, qualification,
-                email, phone
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        ''', (
-            username, password, role,
-            first_name, last_name, age, national_id, address, qualification,
-            email, phone
-        ))
-        db.commit()
+    username = request.form['username']
+    password = generate_password_hash(request.form['password'])
+    role = request.form['role']
+    first_name = request.form.get('first_name')
+    last_name = request.form.get('last_name')
+    age = request.form.get('age')
+    national_id = request.form.get('national_id')
+    address = request.form.get('address')
+    qualification = request.form.get('qualification')
+    email = request.form.get('email')
+    phone = request.form.get('phone')
 
-        flash('User added successfully.', 'success')
+    cursor.execute("""
+        INSERT INTO users (username, password, role, first_name, last_name, age,
+                           national_id, address, qualification, email, phone)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """, (username, password, role, first_name, last_name, age, national_id,
+          address, qualification, email, phone))
+    db.commit()
+    flash('User added successfully.', 'success')
+    return redirect(url_for('user.manage_users'))
+
+# ✏️ Edit user
+@user_bp.route('/edit_user', methods=['POST'])
+@login_required
+@admin_required
+def edit_user():
+    db = get_db()
+    cursor = get_cursor()
+
+    user_id = request.form['id']
+    username = request.form['username']
+    role = request.form['role']
+    first_name = request.form['first_name']
+    last_name = request.form['last_name']
+    age = request.form.get('age')
+    national_id = request.form['national_id']
+    address = request.form['address']
+    qualification = request.form['qualification']
+    email = request.form['email']
+    phone = request.form['phone']
+
+    try:
+        age = int(age) if age.strip() else None
+    except ValueError:
+        flash('Invalid age. Please enter a number.', 'danger')
         return redirect(url_for('user.manage_users'))
 
-    return render_template("user/add_user.html")
+    cursor.execute("""
+        UPDATE users SET username = %s, role = %s, first_name = %s, last_name = %s,
+                         age = %s, national_id = %s, address = %s, qualification = %s,
+                         email = %s, phone = %s
+        WHERE id = %s
+    """, (username, role, first_name, last_name, age, national_id, address,
+          qualification, email, phone, user_id))
+    db.commit()
+    flash('User updated successfully.', 'success')
+    return redirect(url_for('user.manage_users'))
 
+# 🗑️ Delete user with password confirmation
+@user_bp.route('/confirm_delete', methods=['POST'])
+@login_required
+@admin_required
+def confirm_delete():
+    user_id = request.form['id']
+    password = request.form['password']
 
-# 👤 Edit Own Profile
+    cursor = get_cursor()
+    cursor.execute("SELECT password FROM users WHERE id = %s", (session['user_id'],))
+    admin = cursor.fetchone()
+
+    if not check_password_hash(admin['password'], password):
+        flash("Incorrect admin password. Deletion aborted.", "danger")
+        return redirect(url_for('user.manage_users'))
+
+    db = get_db()
+    cursor.execute("DELETE FROM users WHERE id = %s", (user_id,))
+    db.commit()
+    flash("User deleted successfully.", "success")
+    return redirect(url_for('user.manage_users'))
+
+# 👤 Edit own profile
 @user_bp.route('/edit_profile', methods=['GET', 'POST'])
 @login_required
 def edit_profile():
     db = get_db()
     cursor = get_cursor()
-    cursor.execute('SELECT * FROM users WHERE id = %s', (session['user_id'],))
+    cursor.execute("SELECT * FROM users WHERE id = %s", (session['user_id'],))
     user = cursor.fetchone()
 
     if request.method == 'POST':
@@ -199,13 +221,15 @@ def edit_profile():
         address = request.form['address']
         qualification = request.form['qualification']
 
-        cursor.execute('''
+        cursor.execute("""
             UPDATE users
-            SET first_name = %s, last_name = %s, email = %s, phone = %s, address = %s, qualification = %s
+            SET first_name = %s, last_name = %s, email = %s, phone = %s,
+                address = %s, qualification = %s
             WHERE id = %s
-        ''', (first_name, last_name, email, phone, address, qualification, session['user_id']))
+        """, (first_name, last_name, email, phone, address, qualification, session['user_id']))
         db.commit()
 
+        session.pop('show_complete_profile_popup', None)
         flash('Profile updated successfully.', 'success')
         return redirect(url_for('user.profile'))
 

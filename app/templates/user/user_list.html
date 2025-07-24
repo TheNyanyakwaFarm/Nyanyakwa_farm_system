@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+
+{% block title %}User Management - Nyanyakwa{% endblock %}
+
+{% block content %}
+<h2 style="color: #1a237e;">👥 User Accounts</h2>
+
+<!-- 🔍 Filter Form -->
+<form method="get" style="margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px;">
+  <input type="text" name="search" placeholder="Search name or email..." value="{{ request.args.get('search', '') }}">
+  <select name="role">
+    <option value="">All Roles</option>
+    <option value="admin" {% if request.args.get('role') == 'admin' %}selected{% endif %}>Admin</option>
+    <option value="manager" {% if request.args.get('role') == 'manager' %}selected{% endif %}>Manager</option>
+    <option value="user" {% if request.args.get('role') == 'user' %}selected{% endif %}>User</option>
+  </select>
+  <button type="submit">🔍 Filter</button>
+</form>
+
+<!-- ➕ Add User Button (Admin Only) -->
+{% if session.get('role') == 'admin' %}
+  <button onclick="document.getElementById('addUserModal').style.display='block'">➕ Add User</button>
+{% endif %}
+
+<!-- 📋 User Table -->
+<table border="1" cellpadding="8" cellspacing="0" width="100%" style="margin-top: 15px;">
+  <thead>
+    <tr>
+      <th>Username</th>
+      <th>Role</th>
+      <th>Email</th>
+      <th>Phone</th>
+      <th>Name</th>
+      {% if session.get('role') == 'admin' %}<th>Actions</th>{% endif %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for user in users %}
+    <tr>
+      <td>{{ user.username }}</td>
+      <td>{{ user.role }}</td>
+      <td>{{ user.email or '-' }}</td>
+      <td>{{ user.phone or '-' }}</td>
+      <td>{{ user.first_name or '' }} {{ user.last_name or '' }}</td>
+      {% if session.get('role') == 'admin' %}
+      <td>
+        <!-- Edit Modal Trigger -->
+        <button onclick="openEditModal({{ user|tojson|safe }})">✏️</button>
+
+        <!-- Delete Modal Trigger -->
+        <button onclick="openDeleteModal('{{ user.id }}', '{{ user.username }}')">🗑️</button>
+      </td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- 📄 Pagination -->
+<div style="margin-top: 20px; text-align: center;">
+  {% if total_pages > 1 %}
+    {% for page in range(1, total_pages + 1) %}
+      {% if page == current_page %}
+        <strong>{{ page }}</strong>
+      {% else %}
+        <a href="?page={{ page }}">{{ page }}</a>
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+</div>
+
+<!-- ➕ Add User Modal -->
+<div id="addUserModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5);">
+  <div style="background:white; padding:20px; margin:5% auto; max-width:600px; position:relative;">
+    <span onclick="document.getElementById('addUserModal').style.display='none'" style="position:absolute; top:10px; right:15px; cursor:pointer;">&times;</span>
+    <h3>➕ Add New User</h3>
+    <form method="post" action="{{ url_for('user.add_user') }}">
+      {{ csrf_token() }}
+      <input type="text" name="username" placeholder="Username" required><br><br>
+      <input type="password" name="password" placeholder="Password" required><br><br>
+      <select name="role" required>
+        <option value="user">User</option>
+        <option value="manager">Manager</option>
+        <option value="admin">Admin</option>
+      </select><br><br>
+      <input type="text" name="first_name" placeholder="First Name"><br><br>
+      <input type="text" name="last_name" placeholder="Last Name"><br><br>
+      <input type="text" name="email" placeholder="Email" required><br><br>
+      <input type="text" name="phone" placeholder="Phone" required><br><br>
+      <input type="number" name="age" placeholder="Age"><br><br>
+      <input type="text" name="national_id" placeholder="National ID"><br><br>
+      <input type="text" name="address" placeholder="Address"><br><br>
+      <input type="text" name="qualification" placeholder="Qualification"><br><br>
+      <button type="submit">➕ Add</button>
+    </form>
+  </div>
+</div>
+
+<!-- ✏️ Edit User Modal -->
+<div id="editUserModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5);">
+  <div style="background:white; padding:20px; margin:5% auto; max-width:600px; position:relative;">
+    <span onclick="document.getElementById('editUserModal').style.display='none'" style="position:absolute; top:10px; right:15px; cursor:pointer;">&times;</span>
+    <h3>✏️ Edit User</h3>
+    <form method="post" id="editUserForm">
+      {{ csrf_token() }}
+      <input type="hidden" name="id" id="edit_id">
+      <input type="text" name="username" id="edit_username" required><br><br>
+      <input type="text" name="first_name" id="edit_first_name"><br><br>
+      <input type="text" name="last_name" id="edit_last_name"><br><br>
+      <input type="text" name="email" id="edit_email"><br><br>
+      <input type="text" name="phone" id="edit_phone"><br><br>
+      <input type="number" name="age" id="edit_age"><br><br>
+      <input type="text" name="national_id" id="edit_national_id"><br><br>
+      <input type="text" name="address" id="edit_address"><br><br>
+      <input type="text" name="qualification" id="edit_qualification"><br><br>
+      <select name="role" id="edit_role" required>
+        <option value="user">User</option>
+        <option value="manager">Manager</option>
+        <option value="admin">Admin</option>
+      </select><br><br>
+      <button type="submit">💾 Save</button>
+    </form>
+  </div>
+</div>
+
+<!-- 🗑️ Delete Modal -->
+<div id="deleteUserModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5);">
+  <div style="background:white; padding:20px; margin:10% auto; max-width:400px; position:relative;">
+    <span onclick="document.getElementById('deleteUserModal').style.display='none'" style="position:absolute; top:10px; right:15px; cursor:pointer;">&times;</span>
+    <h3 style="color:red;">Confirm Delete</h3>
+    <p>Are you sure you want to delete user <strong id="deleteUsername"></strong>?</p>
+    <form method="post" id="deleteUserForm" action="{{ url_for('user.confirm_delete') }}">
+      {{ csrf_token() }}
+      <input type="hidden" name="id" id="deleteUserId">
+      <label>Enter Admin Password:</label><br>
+      <input type="password" name="password" required><br><br>
+      <button type="submit">🗑️ Yes, Delete</button>
+    </form>
+  </div>
+</div>
+
+<script>
+// 🧠 Populate Edit Modal
+function openEditModal(user) {
+  document.getElementById('edit_id').value = user.id;
+  document.getElementById('edit_username').value = user.username;
+  document.getElementById('edit_first_name').value = user.first_name || '';
+  document.getElementById('edit_last_name').value = user.last_name || '';
+  document.getElementById('edit_email').value = user.email || '';
+  document.getElementById('edit_phone').value = user.phone || '';
+  document.getElementById('edit_age').value = user.age || '';
+  document.getElementById('edit_national_id').value = user.national_id || '';
+  document.getElementById('edit_address').value = user.address || '';
+  document.getElementById('edit_qualification').value = user.qualification || '';
+  document.getElementById('edit_role').value = user.role;
+  document.getElementById('editUserModal').style.display = 'block';
+}
+
+// 🧠 Trigger Delete Modal
+function openDeleteModal(userId, username) {
+  document.getElementById('deleteUserId').value = userId;
+  document.getElementById('deleteUsername').innerText = username;
+  document.getElementById('deleteUserModal').style.display = 'block';
+}
+</script>
+{% endblock %}

@@ -1,173 +1,176 @@
-from flask import Blueprint, render_template, request, redirect, flash, session, url_for
-from database import get_cursor, get_db
+# ✅ cattle.py (Updated with pagination, filtering, admin control)
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session
+from flask_login import login_required
 from datetime import datetime
-from functools import wraps
-from app.utils.status_updater import update_cattle_statuses  # ✅ Existing logic
-from app.utils.status_logic import determine_initial_status  # ✅ NEW logic
+from database import get_db, get_cursor
+from app.utils.status_updater import update_cattle_statuses
+from app.utils.status_logic import determine_initial_status
+from app import admin_required
 
 cattle_bp = Blueprint('cattle', __name__, url_prefix='/cattle')
 
-# 🔐 Login required decorator
-def login_required(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        if 'user_id' not in session:
-            flash('Please log in to access this page.', 'warning')
-            return redirect(url_for('auth.login', next=request.url))
-        return f(*args, **kwargs)
-    return wrapper
+# ✅ List Cattle (with pagination, filtering)
+@cattle_bp.route('/')
+@login_required
+def cattle_list():
+    db = get_db()
+    cursor = get_cursor()
 
-# ✅ Route: Add Cattle
-@cattle_bp.route('/add', methods=['GET', 'POST'])
+    page = int(request.args.get('page', 1))
+    per_page = 10
+    offset = (page - 1) * per_page
+
+    search = request.args.get('search', '').strip()
+    sex = request.args.get('sex')
+    status_category = request.args.get('status_category')
+
+    query = "SELECT * FROM cattle WHERE is_active = TRUE"
+    params = []
+
+    if search:
+        query += " AND (LOWER(name) LIKE %s OR LOWER(tag_number) LIKE %s OR LOWER(breed) LIKE %s)"
+        keyword = f"%{search.lower()}%"
+        params += [keyword, keyword, keyword]
+
+    if sex:
+        query += " AND sex = %s"
+        params.append(sex)
+
+    if status_category:
+        query += " AND status_category = %s"
+        params.append(status_category)
+
+    count_query = f"SELECT COUNT(*) FROM ({query}) AS filtered"
+    cursor.execute(count_query, params)
+    total_records = cursor.fetchone()[0]
+    total_pages = (total_records + per_page - 1) // per_page
+
+    query += " ORDER BY cattle_id DESC LIMIT %s OFFSET %s"
+    params += [per_page, offset]
+    cursor.execute(query, params)
+    cattle = cursor.fetchall()
+
+    return render_template('cattle/cattle_list.html',
+        cattle=cattle,
+        current_page=page,
+        total_pages=total_pages
+    )
+
+# ✅ Add Cattle
+@cattle_bp.route('/add', methods=['POST'])
 @login_required
 def add_cattle():
     db = get_db()
     cursor = get_cursor()
 
-    if request.method == 'POST':
-        name = request.form['name']
-        breed = request.form['breed']
-        birth_date_str = request.form['birth_date']
-        sex = request.form['sex']
+    name = request.form['name']
+    breed = request.form['breed']
+    birth_date_str = request.form['birth_date']
+    sex = request.form['sex']
+    remark = request.form['remark']
 
-        # ✅ Convert birth_date string to date object
-        try:
-            birth_date = datetime.strptime(birth_date_str, '%Y-%m-%d').date()
-        except ValueError:
-            flash("Invalid birth date format", "danger")
-            return redirect(url_for('cattle.add_cattle'))
-
-        # ✅ Generate new tag number
-        today = datetime.today()
-        month = today.strftime('%m')
-        year = today.strftime('%Y')
-        prefix = "TNF"
-
-        cursor.execute("""
-            SELECT tag_number FROM cattle
-            WHERE tag_number LIKE 'TNF%' ORDER BY cattle_id DESC LIMIT 1
-        """)
-        latest_tag = cursor.fetchone()
-
-        if latest_tag:
-            last_tag = latest_tag['tag_number']
-            last_number = int(last_tag.split('/')[0][3:])
-            next_number = last_number + 1
-        else:
-            next_number = 1
-
-        padded_number = str(next_number).zfill(4)
-        tag_number = f"{prefix}{padded_number}/{month}/{year}"
-
-        # ✅ Determine status using logic
-        status_category, status = determine_initial_status(sex, birth_date)
-
-        if not status_category:
-            # Fallback to form-based selection for females ≥11 months
-            status_category = request.form.get('status_category')
-            if status_category == 'young_stock':
-                status = 'bullying heifer'
-            elif status_category == 'mature_stock':
-                status = request.form.get('status')
-
-        try:
-            cursor.execute('''
-                INSERT INTO cattle (
-                    name, tag_number, breed, birth_date, sex,
-                    status_category, status
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
-            ''', (name, tag_number, breed, birth_date, sex, status_category, status))
-            db.commit()
-
-            update_cattle_statuses(db)
-
-            flash(f'Cattle added successfully. Tag Number: {tag_number}', 'success')
-        except Exception as e:
-            flash(f'⚠️ Error saving cattle: {e}', 'danger')
-
+    try:
+        birth_date = datetime.strptime(birth_date_str, '%Y-%m-%d').date()
+    except ValueError:
+        flash("Invalid birth date format", "danger")
         return redirect(url_for('cattle.cattle_list'))
 
-    return render_template('cattle/add_cattle.html')
+    today = datetime.today()
+    prefix = "TNF"
+    month = today.strftime('%m')
+    year = today.strftime('%Y')
 
-# ✅ Route: View Cattle List
-@cattle_bp.route('/list', methods=['GET'])
-@login_required
-def cattle_list():
-    cursor = get_cursor()
-    search = request.args.get('search', '').strip()
+    cursor.execute("SELECT tag_number FROM cattle WHERE tag_number LIKE 'TNF%' ORDER BY cattle_id DESC LIMIT 1")
+    latest_tag = cursor.fetchone()
 
-    if search:
-        query = """
-            SELECT * FROM cattle
-            WHERE name ILIKE %s OR tag_number ILIKE %s OR breed ILIKE %s
-            ORDER BY birth_date DESC
-        """
-        param = f"%{search}%"
-        cursor.execute(query, (param, param, param))
+    if latest_tag:
+        last_number = int(latest_tag['tag_number'].split('/')[0][3:])
+        next_number = last_number + 1
     else:
-        cursor.execute("SELECT * FROM cattle ORDER BY birth_date DESC")
+        next_number = 1
 
-    cattle = cursor.fetchall()
-    return render_template('cattle/cattle_list.html', cattle=cattle)
+    tag_number = f"{prefix}{str(next_number).zfill(4)}/{month}/{year}"
+    status_category, status = determine_initial_status(sex, birth_date)
 
-# ✅ Route: Edit Cattle
+    if not status_category:
+        status_category = request.form.get('status_category')
+        status = 'bullying heifer' if status_category == 'young_stock' else request.form.get('status')
+
+    try:
+        cursor.execute('''
+            INSERT INTO cattle (name, tag_number, breed, birth_date, sex,
+            status_category, status, recorded_by, is_active, remark)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, TRUE, %s)
+        ''', (name, tag_number, breed, birth_date, sex, status_category, status, session['user_id'], remark))
+        db.commit()
+        update_cattle_statuses(db)
+        flash(f"Cattle added successfully. Tag Number: {tag_number}", "success")
+    except Exception as e:
+        flash(f"Error adding cattle: {e}", "danger")
+
+    return redirect(url_for('cattle.cattle_list'))
+
+# ✅ Edit Cattle
 @cattle_bp.route('/edit/<int:cattle_id>', methods=['GET', 'POST'])
 @login_required
+@admin_required
 def edit_cattle(cattle_id):
     db = get_db()
     cursor = get_cursor()
-
-    cursor.execute("SELECT * FROM cattle WHERE cattle_id = %s", (cattle_id,))
-    cattle = cursor.fetchone()
-
-    if not cattle:
-        flash("Cattle record not found.", "danger")
-        return redirect(url_for('cattle.cattle_list'))
 
     if request.method == 'POST':
         name = request.form['name']
         breed = request.form['breed']
         birth_date = request.form['birth_date']
         sex = request.form['sex']
-        status_category = request.form.get('status_category', '')
-        status = request.form.get('status', '')
+        remark = request.form['remark']
 
-        cursor.execute("""
-            UPDATE cattle
-            SET name=%s, breed=%s, birth_date=%s, sex=%s,
-                status_category=%s, status=%s
+        status_category = request.form.get('status_category')
+        status = 'bullying heifer' if status_category == 'young_stock' else request.form.get('status')
+
+        cursor.execute('''
+            UPDATE cattle SET
+                name=%s, breed=%s, birth_date=%s, sex=%s,
+                status_category=%s, status=%s, remark=%s
             WHERE cattle_id=%s
-        """, (name, breed, birth_date, sex, status_category, status, cattle_id))
-
+        ''', (name, breed, birth_date, sex, status_category, status, remark, cattle_id))
         db.commit()
-        update_cattle_statuses(db)
-        flash("Cattle record updated.", "success")
+        flash("Cattle updated successfully", "success")
         return redirect(url_for('cattle.cattle_list'))
-
-    return render_template('cattle/edit_cattle.html', cattle=cattle)
-
-# ✅ Route: Delete Cattle
-@cattle_bp.route('/delete/<int:cattle_id>', methods=['GET', 'POST'])
-@login_required
-def delete_cattle(cattle_id):
-    if session.get('role') not in ['admin', 'manager']:
-        flash("You do not have permission to delete cattle.", "danger")
-        return redirect(url_for('cattle.cattle_list'))
-
-    db = get_db()
-    cursor = get_cursor()
 
     cursor.execute("SELECT * FROM cattle WHERE cattle_id = %s", (cattle_id,))
     cattle = cursor.fetchone()
+    return render_template('cattle/edit_cattle.html', cattle=cattle)
 
-    if not cattle:
-        flash("Cattle not found.", "danger")
-        return redirect(url_for('cattle.cattle_list'))
+# ✅ Delete Cattle
+@cattle_bp.route('/delete/<int:cattle_id>', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def delete_cattle(cattle_id):
+    db = get_db()
+    cursor = get_cursor()
 
     if request.method == 'POST':
-        cursor.execute("DELETE FROM cattle WHERE cattle_id = %s", (cattle_id,))
+        cursor.execute("UPDATE cattle SET is_active = FALSE, remark = 'deleted' WHERE cattle_id = %s", (cattle_id,))
         db.commit()
-        flash("Cattle deleted successfully.", "info")
+        flash("Cattle deleted successfully", "success")
         return redirect(url_for('cattle.cattle_list'))
 
+    cursor.execute("SELECT * FROM cattle WHERE cattle_id = %s", (cattle_id,))
+    cattle = cursor.fetchone()
     return render_template('cattle/delete_cattle.html', cattle=cattle)
+
+# ✅ Archive Cattle
+@cattle_bp.route('/archive', methods=['POST'])
+@login_required
+@admin_required
+def archive_cattle():
+    db = get_db()
+    cursor = get_cursor()
+
+    cattle_id = request.form.get('cattle_id')
+    remark = request.form.get('remark')
+    cursor.execute("UPDATE cattle SET is_active = FALSE, remark = %s WHERE cattle_id = %s", (remark, cattle_id))
+    db.commit()
+    flash("Cattle archived as: " + remark, "success")
+    return redirect(url_for('cattle.cattle_list'))

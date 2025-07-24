@@ -1,227 +1,121 @@
-from flask import Blueprint, render_template, request, redirect, flash, session, url_for
-from datetime import datetime, timedelta
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session
+from datetime import datetime
 from dateutil.relativedelta import relativedelta
-from database import get_db, get_cursor
-from functools import wraps
+from db import get_db
+from auth import login_required
 from app.utils.status_updater import update_cattle_statuses
 
 breeding_bp = Blueprint('breeding', __name__, url_prefix='/breeding')
 
-# 🔐 Decorators
-def login_required(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        if 'user_id' not in session:
-            flash('Please log in to access this page.', 'warning')
-            return redirect(url_for('auth.login', next=request.url))
-        return f(*args, **kwargs)
-    return wrapper
-
-def role_required(*roles):
-    def decorator(f):
-        @wraps(f)
-        def wrapper(*args, **kwargs):
-            if 'user_id' not in session:
-                flash('Please log in to access this page.', 'warning')
-                return redirect(url_for('auth.login', next=request.url))
-            if session.get('role') not in roles:
-                flash('You do not have permission to access this page.', 'danger')
-                return redirect(url_for('dashboard.dashboard'))
-            return f(*args, **kwargs)
-        return wrapper
-    return decorator
-
-
-
-
-# ➕ Add Breeding Record
 @breeding_bp.route('/add', methods=['GET', 'POST'])
 @login_required
 def add_breeding():
     db = get_db()
-    cursor = get_cursor()
+    cursor = db.cursor()
 
     if request.method == 'POST':
         cattle_id = request.form.get('cattle_id')
         method = request.form.get('method')
-        breeding_date = request.form.get('breeding_date')
+        semen_type = request.form.get('semen_type')
+        semen_price = request.form.get('semen_price') or None
+        semen_batch_number = request.form.get('semen_batch_number')
+        sire_name = request.form.get('sire_name')
+        breeding_date_str = request.form.get('breeding_date')
         breeding_attempt_number = request.form.get('breeding_attempt_number')
         notes = request.form.get('notes')
-
-        if not all([cattle_id, method, breeding_date, breeding_attempt_number]):
-            flash("⚠️ Please fill in all required fields.", "danger")
-            return redirect(url_for('breeding.add_breeding'))
-
-        # ✅ Cattle eligibility
-        cursor.execute("""
-            SELECT sex, status, status_category, birth_date
-            FROM cattle WHERE cattle_id = %s
-        """, (cattle_id,))
-        cattle = cursor.fetchone()
-
-        if not cattle or cattle['sex'] != 'F':
-            flash("❌ Breeding can only be recorded for female cattle.", "danger")
-            return redirect(url_for('breeding.add_breeding'))
+        pregnancy_check_date = request.form.get('pregnancy_check_date') or None
+        pregnancy_test_result = request.form.get('pregnancy_test_result') or None
+        breeding_outcome = request.form.get('breeding_outcome') or 'pending'
+        remark = request.form.get('remark') or notes
+        recorded_by = session.get('user_id')
+        created_at = datetime.now()
 
         try:
-            birth_date = cattle['birth_date']
-            birth_date = birth_date if isinstance(birth_date, datetime) else datetime.strptime(str(birth_date), "%Y-%m-%d")
-            age_in_months = (datetime.now() - birth_date).days // 30
-        except Exception:
-            flash("⚠️ Invalid or missing birth date for this animal.", "danger")
-            return redirect(url_for('breeding.add_breeding'))
-
-        if cattle['status_category'] == 'young_stock':
-            if cattle['status'] != 'bullying heifer' or age_in_months < 12:
-                flash("❌ Young stock must be 'bullying heifer' and at least 12 months old.", "danger")
-                return redirect(url_for('breeding.add_breeding'))
-        elif cattle['status_category'] == 'mature_stock':
-            if cattle['status'] != 'lactating':
-                flash("❌ Mature stock must be 'lactating' to breed.", "danger")
-                return redirect(url_for('breeding.add_breeding'))
-
-        # ✅ Check 21-day gap
-        cursor.execute("""
-            SELECT breeding_date FROM breeding_records 
-            WHERE cattle_id = %s ORDER BY breeding_date DESC LIMIT 1
-        """, (cattle_id,))
-        last_breeding = cursor.fetchone()
-
-        try:
-            current_date = datetime.strptime(breeding_date, "%Y-%m-%d")
+            breeding_date = datetime.strptime(breeding_date_str, '%Y-%m-%d').date()
         except ValueError:
-            flash("⚠️ Invalid breeding date format.", "danger")
-            return redirect(url_for('breeding.add_breeding'))
+            flash("Invalid breeding date format.", "danger")
+            return redirect(request.url)
 
-        if last_breeding:
-            last_date = last_breeding['breeding_date']
-            last_date = last_date if isinstance(last_date, datetime) else datetime.strptime(str(last_date), "%Y-%m-%d")
-            if (current_date - last_date).days < 21:
-                flash(f"❌ This cow was served { (current_date - last_date).days } days ago.", "danger")
-                return redirect(url_for('breeding.add_breeding'))
+        steaming_date = breeding_date + relativedelta(months=+7)
+        expected_calving_date = breeding_date + relativedelta(months=+9)
 
-        # 🧬 AI-specific fields
-        semen_type = semen_price = semen_batch_number = sire_name = None
-        if method == 'AI':
-            semen_type = request.form.get('semen_type')
-            semen_price = request.form.get('semen_price')
-            semen_batch_number = request.form.get('semen_batch_number')
-            sire_name = request.form.get('sire_name')
+        # ✅ Check cattle status before allowing breeding
+        cursor.execute("SELECT status FROM cattle WHERE id = %s", (cattle_id,))
+        status_result = cursor.fetchone()
 
-            if not all([semen_type, semen_price, semen_batch_number, sire_name]):
-                flash("⚠️ All AI fields must be filled.", "danger")
-                return redirect(url_for('breeding.add_breeding'))
+        if not status_result:
+            flash("Cattle not found.", "danger")
+            return redirect(request.url)
 
-            try:
-                semen_price = float(semen_price)
-            except ValueError:
-                flash("⚠️ Semen price must be a number.", "danger")
-                return redirect(url_for('breeding.add_breeding'))
+        cattle_status = status_result[0].lower()
+        if cattle_status not in ('lactating', 'bullying heifer'):
+            flash(f"Breeding not allowed. This cow is currently '{cattle_status.title()}'.", "danger")
+            return redirect(request.url)
 
-        # 📅 Auto-calculate
-        pregnancy_check_date = (current_date + timedelta(days=42)).strftime("%Y-%m-%d")
-        steaming_date = (current_date + relativedelta(months=7)).strftime("%Y-%m-%d")
+        # ✅ Enforce 21-day interval rule (unless last outcome was 'failed')
+        cursor.execute("""
+            SELECT breeding_date, breeding_outcome
+            FROM breeding_records
+            WHERE cattle_id = %s
+            ORDER BY breeding_date DESC
+            LIMIT 1
+        """, (cattle_id,))
+        last_record = cursor.fetchone()
 
-        try:
-            cursor.execute("""
-                INSERT INTO breeding_records (
-                    cattle_id, method, semen_type, semen_price,
-                    semen_batch_number, sire_name,
-                    breeding_date, breeding_attempt_number, notes,
-                    steaming_date, pregnancy_check_date, pregnancy_test_result
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, (
-                cattle_id, method, semen_type, semen_price,
-                semen_batch_number, sire_name,
-                breeding_date, breeding_attempt_number, notes,
-                steaming_date, pregnancy_check_date, None
-            ))
-            db.commit()
+        if last_record:
+            last_breeding_date, last_outcome = last_record
+            days_since_last = (breeding_date - last_breeding_date).days
 
-            # ✅ Update cattle status based on latest event
-            update_cattle_statuses(db)
+            if days_since_last < 21 and last_outcome != 'failed':
+                flash(f"Cow was bred {days_since_last} days ago (Outcome: {last_outcome}). Minimum interval is 21 days.", "danger")
+                return redirect(request.url)
 
-            flash("✅ Breeding record added successfully.", "success")
-        except Exception as e:
-            flash(f"❌ Failed to add breeding record: {e}", "danger")
+        # ✅ Insert breeding record
+        cursor.execute("""
+            INSERT INTO breeding_records (
+                cattle_id, recorded_by, method, semen_type, semen_price,
+                semen_batch_number, sire_name, breeding_date,
+                breeding_attempt_number, notes, steaming_date,
+                pregnancy_check_date, pregnancy_test_result,
+                created_at, breeding_outcome, remark
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (
+            cattle_id, recorded_by, method, semen_type, semen_price,
+            semen_batch_number, sire_name, breeding_date,
+            breeding_attempt_number, notes, steaming_date,
+            pregnancy_check_date, pregnancy_test_result,
+            created_at, breeding_outcome, remark
+        ))
 
-        return redirect(url_for('breeding.add_breeding'))
+        db.commit()
+        flash("✅ Breeding record added successfully.", "success")
+        return redirect(url_for('breeding.list_breeding'))
 
-    # 📥 GET: Eligible cattle
-    cursor.execute("""
-        SELECT cattle_id, tag_number, name
-        FROM cattle
-        WHERE sex = 'F'
-          AND (
-              (status_category = 'young_stock' AND status = 'bullying heifer' AND
-               birth_date <= CURRENT_DATE - INTERVAL '12 months')
-              OR
-              (status_category = 'mature_stock' AND status = 'lactating')
-          )
-    """)
-    cattle_list = cursor.fetchall()
+    # GET: Show add form with active cattle list
+    cursor.execute("SELECT id, tag_number FROM cattle WHERE is_active = TRUE ORDER BY tag_number")
+    cattle = cursor.fetchall()
 
-    return render_template("breeding/add_breeding.html", cattle_list=cattle_list)
+    return render_template('breeding/add_breeding.html', cattle=cattle)
 
 
-# ✏️ Edit (placeholder)
-@breeding_bp.route('/edit/<int:id>', methods=['GET', 'POST'])
-@login_required
-@role_required('admin')
-def edit_breeding(id):
-    cursor = get_cursor()
-
-    cursor.execute("""
-        SELECT br.*, c.tag_number, c.name AS cattle_name
-        FROM breeding_records br
-        JOIN cattle c ON br.cattle_id = c.cattle_id
-        WHERE br.id = %s
-    """, (id,))
-    record = cursor.fetchone()
-
-    if not record:
-        flash("❌ Record not found.", "danger")
-        return redirect(url_for('breeding.breeding_records'))
-
-    return render_template("breeding/edit_breeding.html", record=record)
-
-
-# 📋 List breeding records
 @breeding_bp.route('/records')
 @login_required
-def breeding_records():
-    cursor = get_cursor()
+def list_breeding():
+    db = get_db()
+    cursor = db.cursor()
 
     cursor.execute("""
-        SELECT br.*, c.name AS cattle_name, c.tag_number
+        SELECT br.id, c.tag_number, br.method, br.semen_type, br.semen_price,
+               br.semen_batch_number, br.sire_name, br.breeding_date,
+               br.breeding_attempt_number, br.notes, br.steaming_date,
+               br.pregnancy_check_date, br.pregnancy_test_result,
+               br.created_at, br.breeding_outcome, br.remark,
+               u.full_name AS recorded_by_name
         FROM breeding_records br
-        JOIN cattle c ON br.cattle_id = c.cattle_id
-        WHERE c.sex = 'F'
+        JOIN cattle c ON br.cattle_id = c.id
+        LEFT JOIN users u ON br.recorded_by = u.id
         ORDER BY br.breeding_date DESC
     """)
     records = cursor.fetchall()
 
-    return render_template("breeding/breeding_records.html", records=records)
-
-
-
-# ✅ Update pregnancy test
-@breeding_bp.route('/update_status/<int:id>', methods=['POST'])
-@login_required
-def update_pregnancy_status(id):
-    status = request.form.get('status')
-    db = get_db()
-    cursor = db.cursor()
-
-    try:
-        cursor.execute("""
-            UPDATE breeding_records
-            SET pregnancy_test_result = %s, pregnancy_check_date = CURRENT_DATE
-            WHERE id = %s
-        """, (status, id))
-        db.commit()
-        flash(f"✅ Status updated to: {status}", "success")
-    except Exception as e:
-        flash(f"❌ Failed to update: {e}", "danger")
-
-    return redirect(url_for('breeding.breeding_records'))
+    return render_template('breeding/breeding_list.html', records=records)

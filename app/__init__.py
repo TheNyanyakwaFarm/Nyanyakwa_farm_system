@@ -79,7 +79,7 @@ def register_blueprints(app):
     app.register_blueprint(milk_bp, url_prefix='/milk')
 
 
-# Role-based access control
+# ✅ Sharable Role-based access decorator
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
