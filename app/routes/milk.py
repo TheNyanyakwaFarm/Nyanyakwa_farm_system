@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from datetime import date as dt_date
 from database import get_db, get_cursor
 from app.utils.decorators import login_required, admin_required 
-from app.utils import update_cattle_statuses
+from app.utils.status_updater import update_cattle_statuses
 
 milk_bp = Blueprint('milk', __name__)
 
