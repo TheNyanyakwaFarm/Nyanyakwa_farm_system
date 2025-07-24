@@ -1,18 +1,11 @@
 from flask import Blueprint, render_template, session, redirect, url_for, flash, request
 from database import get_cursor
-from functools import wraps
+from app.utils.decorators import login_required
+
 
 dashboard_bp = Blueprint('dashboard', __name__)
 
-# 🔐 Login required decorator
-def login_required(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        if 'user_id' not in session:
-            flash('Please log in to access this page.', 'warning')
-            return redirect(url_for('auth.login', next=request.url))
-        return f(*args, **kwargs)
-    return wrapper
+
 
 # 🏠 Root route
 @dashboard_bp.route('/')

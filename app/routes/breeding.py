@@ -1,8 +1,8 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
-from db import get_db
-from auth import login_required
+from database import get_db
+from app.utils.decorators import login_required
 from app.utils.status_updater import update_cattle_statuses
 
 breeding_bp = Blueprint('breeding', __name__, url_prefix='/breeding')

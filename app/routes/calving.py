@@ -1,20 +1,11 @@
 from flask import Blueprint, render_template, request, redirect, flash, session, url_for
 from datetime import datetime
 from database import get_db, get_cursor
-from functools import wraps
+from app.utils.decorators import login_required, admin_required
 from app.utils.status_updater import update_cattle_statuses
 
 calving_bp = Blueprint('calving', __name__, url_prefix='/calving')
 
-# 🔐 Login required decorator
-def login_required(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        if 'user_id' not in session:
-            flash('Please log in to access this page.', 'warning')
-            return redirect(url_for('auth.login', next=request.url))
-        return f(*args, **kwargs)
-    return wrapper
 
 @calving_bp.route('/')
 @login_required
@@ -125,6 +116,7 @@ def add_calving():
 
 @calving_bp.route('/delete/<int:calving_id>', methods=['POST'])
 @login_required
+@admin_required
 def soft_delete_calving(calving_id):
     remark = request.form.get('remark', 'soft deleted')
     db = get_db()
@@ -140,6 +132,7 @@ def soft_delete_calving(calving_id):
 
 @calving_bp.route('/hard_delete/<int:calving_id>', methods=['POST'])
 @login_required
+@admin_required
 def hard_delete_calving(calving_id):
     db = get_db()
     cursor = get_cursor()

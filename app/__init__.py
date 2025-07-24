@@ -1,6 +1,5 @@
 import os
 from flask import Flask, render_template, session, redirect, url_for, flash, request
-from functools import wraps
 from dotenv import load_dotenv
 
 # Load environment variables from .env (only locally)
@@ -79,12 +78,3 @@ def register_blueprints(app):
     app.register_blueprint(milk_bp, url_prefix='/milk')
 
 
-# ✅ Sharable Role-based access decorator
-def admin_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user_id' not in session or session.get('role') != 'admin':
-            flash('Admin access required.', 'danger')
-            return redirect(url_for('auth.login'))
-        return f(*args, **kwargs)
-    return decorated_function

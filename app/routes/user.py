@@ -1,36 +1,11 @@
 from flask import Blueprint, render_template, request, redirect, flash, session, url_for
 from werkzeug.security import generate_password_hash, check_password_hash
 from database import get_db, get_cursor
-from functools import wraps
+from app.utils.decorators import login_required, admin_required
+
 
 user_bp = Blueprint('user', __name__)
 
-# 🔐 Login-required decorator
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            flash("Please log in to access this page.", "warning")
-            return redirect(url_for('auth.login', next=request.url))
-        return f(*args, **kwargs)
-    return decorated_function
-
-# 🔐 Role-required decorator
-def role_required(*roles):
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            if 'user_id' not in session:
-                flash("Please log in to access this page.", "warning")
-                return redirect(url_for('auth.login', next=request.url))
-            if session.get('role') not in roles:
-                flash("You do not have permission to perform this action.", "danger")
-                return redirect(url_for('dashboard.dashboard'))
-            return f(*args, **kwargs)
-        return decorated_function
-    return decorator
-
-admin_required = role_required('admin')
 
 # 🟢 Show complete profile popup flag (triggered after login)
 @user_bp.before_app_request

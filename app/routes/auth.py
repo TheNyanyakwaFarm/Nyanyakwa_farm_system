@@ -4,21 +4,11 @@ from flask_mail import Message
 from database import get_db, get_cursor
 from datetime import datetime, timedelta
 import secrets
-from functools import wraps
 from app.extensions import mail
 from app.utils.status_updater import update_cattle_statuses  # ✅ FIXED
+from app.utils.decorators import login_required  # ✅ centralized
 
 auth_bp = Blueprint('auth', __name__)
-
-# 🔐 Decorator
-def login_required(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        if 'user_id' not in session:
-            flash('Please log in to access this page.', 'warning')
-            return redirect(url_for('auth.login', next=request.url))
-        return f(*args, **kwargs)
-    return wrapper
 
 
 # ✅ Login
@@ -61,6 +51,7 @@ def login():
 
 # ✅ Logout
 @auth_bp.route('/logout')
+@login_required
 def logout():
     session.clear()
     flash('You have been logged out.', 'info')

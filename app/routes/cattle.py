@@ -1,11 +1,11 @@
 # ✅ cattle.py (Updated with pagination, filtering, admin control)
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
-from flask_login import login_required
 from datetime import datetime
 from database import get_db, get_cursor
 from app.utils.status_updater import update_cattle_statuses
 from app.utils.status_logic import determine_initial_status
-from app import admin_required
+from app.utils.decorators import login_required, admin_required
+
 
 cattle_bp = Blueprint('cattle', __name__, url_prefix='/cattle')
 

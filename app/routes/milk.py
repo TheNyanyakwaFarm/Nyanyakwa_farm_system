@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
-from datetime import date as dt_date, datetime
-from db import get_db, get_cursor
-from auth import login_required
+from datetime import date as dt_date
+from database import get_db, get_cursor
+from app.utils.decorators import login_required, admin_required 
 from utils import update_cattle_statuses
 
 milk_bp = Blueprint('milk', __name__)
@@ -124,6 +124,7 @@ def record_milk():
 
 @milk_bp.route('/milk/edit/<int:record_id>', methods=['POST'])
 @login_required
+@admin_required
 def edit_milk(record_id):
     db = get_db()
     cursor = get_cursor()
@@ -145,6 +146,7 @@ def edit_milk(record_id):
 
 @milk_bp.route('/milk/delete/<int:record_id>', methods=['POST'])
 @login_required
+@admin_required
 def delete_milk(record_id):
     db = get_db()
     cursor = get_cursor()
