@@ -37,7 +37,7 @@
 <!-- ✅ Navigation Bar -->
 <nav class="navbar navbar-expand-lg fixed-top navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="{{ url_for('dashboard') }}">🐄 Nyanyakwa Farm</a>
+        <a class="navbar-brand" href="{{ url_for('dashboard.home') }}">🐄 The Nyanyakwa Farm</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
             <span class="navbar-toggler-icon"></span>
         </button>
@@ -46,19 +46,20 @@
             {% if 'user_id' in session %}
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
 
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('cattle.view_cattle') }}">Cattle</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('milk.milk_list') }}">Milk</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('breeding.view_breeding') }}">Breeding</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('calving.view_calving') }}">Calving</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('cattle.cattle_list') }}">Cattle</a></li>
+					<li class="nav-item"><a class="nav-link" href="{{ url_for('milk.milk_list') }}">Milk</a></li>
+					<li class="nav-item"><a class="nav-link" href="{{ url_for('breeding.list_breeding') }}">Breeding</a></li>
+					<li class="nav-item"><a class="nav-link" href="{{ url_for('calving.calving_list') }}">Calving</a></li>
 
-                    {% if session['role'] == 'admin' %}
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('user.view_users') }}">Users</a></li>
-                    {% endif %}
+					{% if session['role'] == 'admin' %}
+						<li class="nav-item"><a class="nav-link" href="{{ url_for('user.manage_users') }}">Users</a></li>
+					{% endif %}
+
                 </ul>
 
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('profile.view_profile') }}">👤 {{ session.get('username') }}</a>
+                        <a class="nav-link" href="{{ url_for('user.profile') }}">👤 {{ session.get('username') }}</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a>
