@@ -14,37 +14,78 @@ def milk_list():
     update_cattle_statuses(db)
 
     search_query = request.args.get('search', '')
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+
     page = int(request.args.get('page', 1))
     per_page = 10
     offset = (page - 1) * per_page
 
-    base_query = '''SELECT mp.id, mp.date, mp.cattle_id, c.name AS cattle_name,
-                           mp.morning_milk, mp.mid_day_milk, mp.evening_milk,
-                           u.username AS recorded_by, mp.notes
-                    FROM milk_production mp
-                    JOIN cattle c ON mp.cattle_id = c.id
-                    LEFT JOIN users u ON mp.recorded_by = u.id
-                    WHERE c.is_active = TRUE'''
-
+    # ✅ Prepare filters
+    where_clauses = ["c.is_active = TRUE"]
     params = []
+
+    if start_date:
+        where_clauses.append("mp.date >= %s")
+        params.append(start_date)
+
+    if end_date:
+        where_clauses.append("mp.date <= %s")
+        params.append(end_date)
+
     if search_query:
-        base_query += " AND (c.name ILIKE %s OR u.username ILIKE %s)"
+        where_clauses.append("(c.name ILIKE %s OR u.username ILIKE %s)")
         params.extend([f"%{search_query}%", f"%{search_query}%"])
 
-    # Safely fetch total count
+    where_sql = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+
+    # ✅ Base query with filters
+    base_query = f'''
+        SELECT 
+            mp.id,
+            mp.date,
+            mp.cattle_id,
+            c.tag_number,
+            c.name AS cattle_name,
+            c.status,
+            c.status_category,
+            mp.morning_milk,
+            mp.mid_day_milk,
+            mp.evening_milk,
+            u.username AS recorded_by,
+            mp.notes,
+            lc.latest_calving_date
+        FROM milk_production mp
+        JOIN cattle c ON mp.cattle_id = c.id
+        LEFT JOIN users u ON mp.recorded_by = u.id
+        LEFT JOIN (
+            SELECT 
+                cattle_id, 
+                MAX(calving_date) AS latest_calving_date
+            FROM calving
+            WHERE is_active = TRUE
+            GROUP BY cattle_id
+        ) lc ON lc.cattle_id = c.id
+        {where_sql}
+        ORDER BY 
+            lc.latest_calving_date DESC NULLS LAST,
+            mp.date DESC,
+            mp.id DESC
+    '''
+
+    # ✅ Count total matching records for pagination
     count_query = f"SELECT COUNT(*) AS total FROM ({base_query}) AS count_query"
     cursor.execute(count_query, params)
-    row = cursor.fetchone()
-    total_records = row['total'] if row else 0
+    total_records = cursor.fetchone()['total']
 
-    # Add ordering and pagination
-    base_query += " ORDER BY mp.date DESC, mp.id DESC LIMIT %s OFFSET %s"
-    params.extend([per_page, offset])
-    cursor.execute(base_query, params)
+    # ✅ Apply pagination
+    paginated_query = base_query + " LIMIT %s OFFSET %s"
+    cursor.execute(paginated_query, params + [per_page, offset])
     records = cursor.fetchall()
 
     total_pages = (total_records + per_page - 1) // per_page
 
+    # ✅ Get all active cattle
     cursor.execute("""
         SELECT id, name, status, status_category
         FROM cattle
@@ -53,35 +94,54 @@ def milk_list():
     """)
     all_cattle = cursor.fetchall()
 
+    # ✅ Filter only lactating cows for the Add Milk modal
+    lactating_statuses = ('lactating', 'lactating_incalf')
+    cows = [cow for cow in all_cattle if cow['status'] in lactating_statuses]
+
+    # ✅ Weekly summary
     cursor.execute('''
-        SELECT DATE_TRUNC('week', date) AS week_start,
-               SUM(COALESCE(morning_milk, 0) + COALESCE(mid_day_milk, 0) + COALESCE(evening_milk, 0)) AS total_milk
-        FROM milk_production
+        SELECT DATE_TRUNC('week', mp.date) AS week_start,
+               SUM(COALESCE(mp.morning_milk, 0) + COALESCE(mp.mid_day_milk, 0) + COALESCE(mp.evening_milk, 0)) AS total_milk
+        FROM milk_production mp
+        JOIN cattle c ON mp.cattle_id = c.id
+        WHERE c.is_active = TRUE
         GROUP BY week_start
         ORDER BY week_start DESC
         LIMIT 4
     ''')
     weekly_summary = cursor.fetchall()
+    weekly_total = sum(row['total_milk'] for row in weekly_summary)
 
+    # ✅ Monthly summary
     cursor.execute('''
-        SELECT DATE_TRUNC('month', date) AS month,
-               SUM(COALESCE(morning_milk, 0) + COALESCE(mid_day_milk, 0) + COALESCE(evening_milk, 0)) AS total_milk
-        FROM milk_production
+        SELECT DATE_TRUNC('month', mp.date) AS month,
+               SUM(COALESCE(mp.morning_milk, 0) + COALESCE(mp.mid_day_milk, 0) + COALESCE(mp.evening_milk, 0)) AS total_milk
+        FROM milk_production mp
+        JOIN cattle c ON mp.cattle_id = c.id
+        WHERE c.is_active = TRUE
         GROUP BY month
         ORDER BY month DESC
         LIMIT 6
     ''')
     monthly_summary = cursor.fetchall()
+    monthly_total = sum(row['total_milk'] for row in monthly_summary)
 
     return render_template('milk/milk_list.html',
-                           records=records,
-                           page=page,
-                           total_pages=total_pages,
-                           search_query=search_query,
-                           all_cattle=all_cattle,
-                           weekly_summary=weekly_summary,
-                           monthly_summary=monthly_summary)
-
+        milk_records=records,
+        page=page,
+        total_pages=total_pages,
+        search_query=search_query,
+        start_date=start_date,
+        end_date=end_date,
+        cows=cows,
+        weekly_summary=weekly_summary,
+        monthly_summary=monthly_summary,
+        weekly_total=weekly_total,
+        monthly_total=monthly_total,
+        daily_chart_data={},  # Placeholder
+        cattle_chart_data={},  # Placeholder
+        pagination=None  # Optional: use a helper to render if needed
+    )
 
 @milk_bp.route('/milk/add', methods=['POST'])
 @login_required
@@ -89,16 +149,9 @@ def record_milk():
     db = get_db()
     cursor = get_cursor()
 
-    today = dt_date.today()
-    cattle_id = request.form['cattle_id']
-    session_type = request.form['session_type']
-    quantity = request.form['quantity']
-    notes = request.form.get('notes')
+    today = request.form.get('date') or dt_date.today()
+    session_type = request.form.get('session')
     recorded_by = session['user_id']
-
-    cursor.execute("SELECT id FROM milk_production WHERE cattle_id = %s AND date = %s", (cattle_id, today))
-    row = cursor.fetchone()
-    existing_id = row['id'] if row else None
 
     update_field = {
         'morning': 'morning_milk',
@@ -106,20 +159,36 @@ def record_milk():
         'evening': 'evening_milk'
     }.get(session_type)
 
-    if existing_id and update_field:
-        cursor.execute(f"""
-            UPDATE milk_production
-            SET {update_field} = %s, recorded_by = %s, notes = %s
-            WHERE id = %s
-        """, (quantity, recorded_by, notes, existing_id))
-    elif update_field:
-        cursor.execute(f"""
-            INSERT INTO milk_production (cattle_id, date, recorded_by, notes, {update_field})
-            VALUES (%s, %s, %s, %s, %s)
-        """, (cattle_id, today, recorded_by, notes, quantity))
+    if not update_field:
+        flash("Invalid session type.", "danger")
+        return redirect(url_for('milk.milk_list'))
+
+    cattle_ids = request.form.getlist('cattle_ids')
+    for cid in cattle_ids:
+        try:
+            quantity = float(request.form.get(f'milk_{cid}', 0))
+        except (ValueError, TypeError):
+            quantity = 0
+        notes = request.form.get(f'notes_{cid}', '')
+
+        # Check if already exists
+        cursor.execute("SELECT id FROM milk_production WHERE cattle_id = %s AND date = %s", (cid, today))
+        existing = cursor.fetchone()
+
+        if existing:
+            cursor.execute(f"""
+                UPDATE milk_production
+                SET {update_field} = %s, notes = %s, recorded_by = %s
+                WHERE id = %s
+            """, (quantity, notes, recorded_by, existing['id']))
+        else:
+            cursor.execute(f"""
+                INSERT INTO milk_production (cattle_id, date, recorded_by, notes, {update_field})
+                VALUES (%s, %s, %s, %s, %s)
+            """, (cid, today, recorded_by, notes, quantity))
 
     db.commit()
-    flash('Milk record saved successfully!', 'success')
+    flash("Milk records saved successfully.", "success")
     return redirect(url_for('milk.milk_list'))
 
 
@@ -130,9 +199,14 @@ def edit_milk(record_id):
     db = get_db()
     cursor = get_cursor()
 
-    morning = request.form.get('morning_milk') or 0
-    mid_day = request.form.get('mid_day_milk') or 0
-    evening = request.form.get('evening_milk') or 0
+    try:
+        morning = float(request.form.get('morning_milk') or 0)
+        mid_day = float(request.form.get('mid_day_milk') or 0)
+        evening = float(request.form.get('evening_milk') or 0)
+    except ValueError:
+        flash("Invalid input. Please enter valid milk quantities.", "danger")
+        return redirect(url_for('milk.milk_list'))
+
     notes = request.form.get('notes')
 
     cursor.execute("""
