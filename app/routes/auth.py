@@ -5,8 +5,8 @@ from database import get_db, get_cursor
 from datetime import datetime, timedelta
 import secrets
 from app.extensions import mail
-from app.utils.status_updater import update_cattle_statuses  # ✅ FIXED
-from app.utils.decorators import login_required  # ✅ centralized
+from app.utils.status_updater import update_cattle_statuses
+from app.utils.decorators import login_required
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -26,16 +26,18 @@ def login():
         user = cursor.fetchone()
 
         if user and check_password_hash(user['password'], password):
-            session['user_id'] = user['id']
-            session['username'] = user['username']
-            session['role'] = user['role']
+            session.update({
+                'user_id': user['id'],
+                'username': user['username'],
+                'role': user['role']
+            })
 
-            update_cattle_statuses(db)  # ✅ works now
+            update_cattle_statuses(db)
 
             required_fields = [
-                user['first_name'], user['last_name'], user['age'],
-                user['national_id'], user['address'], user['qualification'],
-                user['email'], user['phone']
+                user.get('first_name'), user.get('last_name'), user.get('age'),
+                user.get('national_id'), user.get('address'),
+                user.get('qualification'), user.get('email'), user.get('phone')
             ]
             if any(field is None or str(field).strip() == '' for field in required_fields):
                 flash("Please complete your profile before continuing.", "warning")
@@ -84,7 +86,7 @@ def forgot_password():
 
             reset_link = url_for('auth.reset_password', token=token, _external=True)
 
-            if user['email']:
+            if user.get('email'):
                 try:
                     msg = Message(
                         "Password Reset - Dairy Farm System",
@@ -130,8 +132,8 @@ def reset_password(token):
         flash("Invalid or expired token.", "danger")
         return redirect(url_for('auth.login'))
 
+    expiry_time = user.get('token_expiry')
     try:
-        expiry_time = user['token_expiry']
         if isinstance(expiry_time, str):
             expiry_time = datetime.strptime(expiry_time, "%Y-%m-%d %H:%M:%S.%f")
     except Exception:
@@ -199,4 +201,9 @@ def complete_profile():
 
     cursor.execute('SELECT * FROM users WHERE id = %s', (user_id,))
     user = cursor.fetchone()
+
+    if not user:
+        flash("User not found.", "danger")
+        return redirect(url_for('auth.logout'))
+
     return render_template("user/complete_profile.html", user=user)

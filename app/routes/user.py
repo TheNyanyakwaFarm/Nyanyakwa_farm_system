@@ -13,8 +13,9 @@ def check_profile_completion():
     if 'user_id' in session and 'show_complete_profile_popup' not in session:
         cursor = get_cursor()
         cursor.execute("SELECT first_name, last_name, email, phone FROM users WHERE id = %s", (session['user_id'],))
-        user = cursor.fetchone()
-        if not all([user['first_name'], user['last_name'], user['email'], user['phone']]):
+        row = cursor.fetchone()
+        user = row if row else {}
+        if not all([user.get('first_name'), user.get('last_name'), user.get('email'), user.get('phone')]):
             session['show_complete_profile_popup'] = True
 
 # 👤 View Profile
@@ -23,7 +24,7 @@ def check_profile_completion():
 def profile():
     cursor = get_cursor()
     cursor.execute("SELECT * FROM users WHERE id = %s", (session['user_id'],))
-    user = cursor.fetchone()
+    user = cursor.fetchone() or {}
     return render_template('user/profile.html', user=user)
 
 # 👤 Edit Profile
@@ -33,7 +34,7 @@ def edit_profile():
     db = get_db()
     cursor = get_cursor()
     cursor.execute("SELECT * FROM users WHERE id = %s", (session['user_id'],))
-    user = cursor.fetchone()
+    user = cursor.fetchone() or {}
 
     if request.method == 'POST':
         form = request.form
@@ -71,7 +72,7 @@ def settings():
     db = get_db()
     cursor = get_cursor()
     cursor.execute("SELECT * FROM users WHERE id = %s", (session['user_id'],))
-    user = cursor.fetchone()
+    user = cursor.fetchone() or {}
 
     if request.method == 'POST':
         current = request.form['current_password']
@@ -121,8 +122,9 @@ def manage_users():
     cursor.execute(f"SELECT * {base_query} ORDER BY id DESC LIMIT %s OFFSET %s", (*params, per_page, offset))
     users = cursor.fetchall()
 
-    cursor.execute(f"SELECT COUNT(*) {base_query}", params)
-    total_users = cursor.fetchone()[0]
+    cursor.execute(f"SELECT COUNT(*) AS total {base_query}", params)
+    row = cursor.fetchone()
+    total_users = row['total'] if row else 0
     total_pages = (total_users + per_page - 1) // per_page
 
     return render_template('user/user_list.html', users=users, current_page=page, total_pages=total_pages)
@@ -200,7 +202,8 @@ def confirm_delete():
 
     cursor = get_cursor()
     cursor.execute("SELECT password FROM users WHERE id = %s", (session['user_id'],))
-    admin = cursor.fetchone()
+    row = cursor.fetchone()
+    admin = row if row else {}
 
     if not check_password_hash(admin['password'], password):
         flash("Incorrect admin password. Deletion aborted.", "danger")

@@ -11,6 +11,8 @@ calving_bp = Blueprint('calving', __name__, url_prefix='/calving')
 @login_required
 def calving_list():
     cursor = get_cursor()
+
+    # Fetch active calving records
     cursor.execute("""
         SELECT c.calving_id, c.dam_id, dam.tag_number, dam.name AS dam_name,
                c.calf_name, c.calf_sex, c.birth_date, c.breed, c.calf_condition,
@@ -22,7 +24,7 @@ def calving_list():
     """)
     records = cursor.fetchall()
 
-    # ✅ Include this block to support modal-based dam selection
+    # Fetch eligible dams for modal dropdown
     cursor.execute("""
         SELECT DISTINCT ca.cattle_id, ca.tag_number, ca.name
         FROM cattle ca
@@ -43,14 +45,15 @@ def add_calving():
     cursor = get_cursor()
 
     if request.method == 'POST':
-        dam_id = request.form['dam_id']
-        calf_name = request.form['calf_name']
-        calf_sex = request.form['calf_sex']
-        birth_date = request.form['birth_date']
+        dam_id = request.form.get('dam_id')
+        calf_name = request.form.get('calf_name')
+        calf_sex = request.form.get('calf_sex')
+        birth_date = request.form.get('birth_date')
         breed = request.form.get('breed')
         calf_condition = request.form.get('calf_condition')
         notes = request.form.get('notes')
 
+        # Validate dam
         cursor.execute("""
             SELECT ca.tag_number, ca.name
             FROM cattle ca
@@ -67,26 +70,31 @@ def add_calving():
             flash('Selected dam is not eligible for calving (must have a breeding record and be past steaming date).', 'danger')
             return redirect(url_for('calving.calving_list'))
 
-        dam_tag_number, dam_name = dam
+        dam_tag_number = dam.get('tag_number')
+        dam_name = dam.get('name')
         recorded_by = session.get('username', 'unknown')
 
+        # Insert into calving table
         cursor.execute("""
-            INSERT INTO calving (dam_id, dam_tag_number, dam_name, calf_name, calf_sex,
-                birth_date, breed, calf_condition, notes, recorded_by)
+            INSERT INTO calving (
+                dam_id, dam_tag_number, dam_name, calf_name, calf_sex,
+                birth_date, breed, calf_condition, notes, recorded_by
+            )
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING calving_id
         """, (dam_id, dam_tag_number, dam_name, calf_name, calf_sex, birth_date,
               breed, calf_condition, notes, recorded_by))
 
-        # Generate calf tag
+        # Generate unique calf tag
         tag_prefix = 'CLF'
         cursor.execute("""
             SELECT MAX(CAST(SUBSTRING(tag_number FROM '[0-9]+') AS INTEGER))
             FROM cattle WHERE tag_number LIKE %s
         """, (f'{tag_prefix}%',))
-        max_tag = cursor.fetchone()[0]
+        max_tag = cursor.fetchone()[0] if cursor.rowcount else 0
         next_tag_number = f"{tag_prefix}{(max_tag + 1) if max_tag else 1:04}"
-        # Insert calf into cattle table with proper status and category
+
+        # Insert calf into cattle table
         cursor.execute("""
             INSERT INTO cattle (
                 tag_number, name, sex, birth_date, breed,
@@ -94,15 +102,15 @@ def add_calving():
             )
             VALUES (%s, %s, %s, %s, %s,
                     'young stock', 'newborn calf', TRUE, 'active', %s)
-        """, (
-            next_tag_number, calf_name, calf_sex, birth_date, breed, recorded_by
-        ))
+        """, (next_tag_number, calf_name, calf_sex, birth_date, breed, recorded_by))
 
         db.commit()
         update_cattle_statuses(db)
-        flash('Calving record and calf successfully added.', 'success')
+
+        flash(f'Calving record added. New calf tag: {next_tag_number}', 'success')
         return redirect(url_for('calving.calving_list'))
 
+    # GET method: show form
     cursor.execute("""
         SELECT DISTINCT ca.cattle_id, ca.tag_number, ca.name
         FROM cattle ca
@@ -114,21 +122,24 @@ def add_calving():
     eligible_dams = cursor.fetchall()
     return render_template('calving/calving_form.html', eligible_dams=eligible_dams)
 
+
 @calving_bp.route('/delete/<int:calving_id>', methods=['POST'])
 @login_required
 @admin_required
 def soft_delete_calving(calving_id):
-    remark = request.form.get('remark', 'soft deleted')
     db = get_db()
     cursor = get_cursor()
+    remark = request.form.get('remark', 'soft deleted')
+
     cursor.execute("""
         UPDATE calving
         SET is_active = FALSE, remark = %s
         WHERE calving_id = %s
     """, (remark, calving_id))
     db.commit()
-    flash('Calving record soft-deleted.', 'info')
+    flash('Calving record archived.', 'info')
     return redirect(url_for('calving.calving_list'))
+
 
 @calving_bp.route('/hard_delete/<int:calving_id>', methods=['POST'])
 @login_required
@@ -136,6 +147,7 @@ def soft_delete_calving(calving_id):
 def hard_delete_calving(calving_id):
     db = get_db()
     cursor = get_cursor()
+
     cursor.execute("DELETE FROM calving WHERE calving_id = %s", (calving_id,))
     db.commit()
     flash('Calving record permanently deleted.', 'danger')
