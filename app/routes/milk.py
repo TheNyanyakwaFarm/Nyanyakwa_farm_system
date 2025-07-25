@@ -66,7 +66,7 @@ def milk_list():
                 MAX(calving_date) AS latest_calving_date
             FROM calving
             WHERE calving.is_active = TRUE
-           GROUP BY calving.cattle_id
+           GROUP BY calving.dam_id AS cattle_id
         ) lc ON lc.cattle_id = c.cattle_id
         {where_sql}
         ORDER BY 
