@@ -30,23 +30,9 @@
         .modal .form-control {
             margin-bottom: 10px;
         }
-
-        .top-login-button {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            z-index: 1055;
-        }
     </style>
 </head>
 <body>
-
-<!-- ✅ Always Visible Login Button -->
-{% if 'user_id' not in session %}
-    <div class="top-login-button">
-        <a href="{{ url_for('auth.login') }}" class="btn btn-outline-light btn-sm">🔐 Login</a>
-    </div>
-{% endif %}
 
 <!-- ✅ Navigation Bar -->
 <nav class="navbar navbar-expand-lg fixed-top navbar-dark">
@@ -59,7 +45,6 @@
         <div class="collapse navbar-collapse" id="navbarContent">
             {% if 'user_id' in session %}
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('cattle.cattle_list') }}">Cattle</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('milk.milk_list') }}">Milk</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('breeding.list_breeding') }}">Breeding</a></li>
@@ -76,6 +61,12 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a>
+                    </li>
+                </ul>
+            {% else %}
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a href="{{ url_for('auth.login') }}" class="btn btn-outline-light btn-sm">🔐 Login</a>
                     </li>
                 </ul>
             {% endif %}
