@@ -32,7 +32,7 @@ def dashboard():
         stats['total_staff'] = row['total'] if row else 0
 
         # Pregnant cows
-        cursor.execute("SELECT COUNT(*) AS total FROM breeding WHERE pregnancy_test_result = 'positive'")
+        cursor.execute("SELECT COUNT(*) AS total FROM breeding_records WHERE pregnancy_test_result = 'positive'")
         row = cursor.fetchone()
         stats['pregnant_cows'] = row['total'] if row else 0
 
@@ -50,7 +50,7 @@ def dashboard():
         stats['total_milk_records'] = row['total'] if row else 0
 
         # Total breeding records
-        cursor.execute("SELECT COUNT(*) AS total FROM breeding")
+        cursor.execute("SELECT COUNT(*) AS total FROM breeding_records")
         row = cursor.fetchone()
         stats['total_breeding'] = row['total'] if row else 0
 
