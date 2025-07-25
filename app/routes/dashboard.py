@@ -13,6 +13,7 @@ def home():
         count = result['total'] if result else 0
     return render_template('dashboard/home.html', count=count)
 
+
 # 📊 Dashboard route (requires login)
 @dashboard_bp.route('/dashboard')
 @login_required
@@ -21,34 +22,41 @@ def dashboard():
 
     with get_cursor() as cursor:
         # Total active cattle
-        cursor.execute("SELECT COUNT(*) FROM cattle WHERE is_active = TRUE")
-        stats['total_cattle'] = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) AS total FROM cattle WHERE is_active = TRUE")
+        row = cursor.fetchone()
+        stats['total_cattle'] = row['total'] if row else 0
 
         # Total staff
-        cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'staff'")
-        stats['total_staff'] = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) AS total FROM users WHERE role = 'staff'")
+        row = cursor.fetchone()
+        stats['total_staff'] = row['total'] if row else 0
 
         # Pregnant cows
-        cursor.execute("SELECT COUNT(*) FROM breeding WHERE pregnancy_test_result = 'positive'")
-        stats['pregnant_cows'] = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) AS total FROM breeding WHERE pregnancy_test_result = 'positive'")
+        row = cursor.fetchone()
+        stats['pregnant_cows'] = row['total'] if row else 0
 
         # Recent calvings in the last 30 days
         cursor.execute("""
-            SELECT COUNT(*) FROM calving 
+            SELECT COUNT(*) AS total FROM calving 
             WHERE is_active = TRUE AND calving_date >= CURRENT_DATE - INTERVAL '30 days'
         """)
-        stats['recent_calvings'] = cursor.fetchone()[0]
+        row = cursor.fetchone()
+        stats['recent_calvings'] = row['total'] if row else 0
 
         # Total milk records
-        cursor.execute("SELECT COUNT(*) FROM milk")
-        stats['total_milk_records'] = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) AS total FROM milk")
+        row = cursor.fetchone()
+        stats['total_milk_records'] = row['total'] if row else 0
 
         # Total breeding records
-        cursor.execute("SELECT COUNT(*) FROM breeding")
-        stats['total_breeding'] = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) AS total FROM breeding")
+        row = cursor.fetchone()
+        stats['total_breeding'] = row['total'] if row else 0
 
         # Total calvings (all time)
-        cursor.execute("SELECT COUNT(*) FROM calving WHERE is_active = TRUE")
-        stats['total_calvings'] = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) AS total FROM calving WHERE is_active = TRUE")
+        row = cursor.fetchone()
+        stats['total_calvings'] = row['total'] if row else 0
 
     return render_template('dashboard/dashboard.html', stats=stats)
