@@ -45,7 +45,7 @@ def dashboard():
         stats['recent_calvings'] = row['total'] if row else 0
 
         # Total milk records
-        cursor.execute("SELECT COUNT(*) AS total FROM milk")
+        cursor.execute("SELECT COUNT(*) AS total FROM milk_production")
         row = cursor.fetchone()
         stats['total_milk_records'] = row['total'] if row else 0
 
