@@ -4,7 +4,8 @@
 {% block content %}
 <h2 style="text-align:center;">Complete Your Profile</h2>
 <form method="POST" style="max-width:500px; margin:auto;">
-    {{ csrf_token() }}
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
 
     <label>First Name:</label>
     <input type="text" name="first_name" value="{{ user['first_name'] or '' }}" required><br><br>

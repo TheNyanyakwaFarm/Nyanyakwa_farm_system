@@ -75,7 +75,7 @@
     <span onclick="document.getElementById('addUserModal').style.display='none'" style="position:absolute; top:10px; right:15px; cursor:pointer;">&times;</span>
     <h3>➕ Add New User</h3>
     <form method="post" action="{{ url_for('user.add_user') }}">
-      {{ csrf_token() }}
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="text" name="username" placeholder="Username" required><br><br>
       <input type="password" name="password" placeholder="Password" required><br><br>
       <select name="role" required>
@@ -102,7 +102,7 @@
     <span onclick="document.getElementById('editUserModal').style.display='none'" style="position:absolute; top:10px; right:15px; cursor:pointer;">&times;</span>
     <h3>✏️ Edit User</h3>
     <form method="post" id="editUserForm">
-      {{ csrf_token() }}
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="id" id="edit_id">
       <input type="text" name="username" id="edit_username" required><br><br>
       <input type="text" name="first_name" id="edit_first_name"><br><br>
@@ -130,7 +130,7 @@
     <h3 style="color:red;">Confirm Delete</h3>
     <p>Are you sure you want to delete user <strong id="deleteUsername"></strong>?</p>
     <form method="post" id="deleteUserForm" action="{{ url_for('user.confirm_delete') }}">
-      {{ csrf_token() }}
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="id" id="deleteUserId">
       <label>Enter Admin Password:</label><br>
       <input type="password" name="password" required><br><br>

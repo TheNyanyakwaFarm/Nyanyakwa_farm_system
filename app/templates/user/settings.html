@@ -10,11 +10,17 @@
   {% if messages %}
     <div style="max-width: 500px; margin-bottom: 20px;">
       {% for category, message in messages %}
-        <div style="padding: 10px; border-left: 5px solid 
-          {% if category == 'success' %}green
-          {% elif category == 'danger' %}red
-          {% elif category == 'warning' %}orange
-          {% else %}gray{% endif %}; background: #f9f9f9; margin-bottom: 10px;">
+        <div class="
+            {% if category == 'success' %}text-success
+            {% elif category == 'danger' %}text-danger
+            {% elif category == 'warning' %}text-warning
+            {% else %}text-secondary{% endif %}"
+          style="padding: 10px; border-left: 5px solid 
+            {% if category == 'success' %}green
+            {% elif category == 'danger' %}red
+            {% elif category == 'warning' %}orange
+            {% else %}gray{% endif %}; 
+            background: #f9f9f9; margin-bottom: 10px;">
           {{ message }}
         </div>
       {% endfor %}
@@ -24,20 +30,21 @@
 
 <!-- 🔐 Change Password Form -->
 <form method="post" action="{{ url_for('user.settings') }}" style="background-color: white; padding: 25px; max-width: 500px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
-    
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
     <div style="margin-bottom: 15px;">
         <label for="current_password"><strong>Current Password:</strong></label><br>
-        <input type="password" name="current_password" required style="width: 100%; padding: 10px;">
+        <input type="password" id="current_password" name="current_password" aria-required="true" required style="width: 100%; padding: 10px;">
     </div>
 
     <div style="margin-bottom: 15px;">
         <label for="new_password"><strong>New Password:</strong></label><br>
-        <input type="password" name="new_password" required style="width: 100%; padding: 10px;">
+        <input type="password" id="new_password" name="new_password" aria-required="true" required style="width: 100%; padding: 10px;">
     </div>
 
     <div style="margin-bottom: 20px;">
         <label for="confirm_password"><strong>Confirm New Password:</strong></label><br>
-        <input type="password" name="confirm_password" required style="width: 100%; padding: 10px;">
+        <input type="password" id="confirm_password" name="confirm_password" aria-required="true" required style="width: 100%; padding: 10px;">
     </div>
 
     <!-- Optional password guidance -->

@@ -46,7 +46,7 @@
     <p>Phone 3: +254 704 565 155</p>
 
     {% if session['user_id'] %}
-        <p style="margin-top: 20px; color: #00796b;">Welcome back, <strong>{{ session['username'] }}</strong>!</p>
+        <p style="margin-top: 20px; color: #00796b;">Welcome back, <strong>{{ session['username', 'User'] }}</strong>!</p>
         <a href="{{ url_for('dashboard.dashboard') }}" style="font-size: 18px; text-decoration: none; color: #1b5e20;">🔧 Go to Dashboard</a>
     {% else %}
         <a href="{{ url_for('auth.login') }}" style="font-size: 18px; margin-top: 20px; display: inline-block; color: #1565c0;">🔐 Login to Access the System</a>

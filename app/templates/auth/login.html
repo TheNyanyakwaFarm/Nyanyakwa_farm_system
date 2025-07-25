@@ -6,8 +6,8 @@
 <h2 style="text-align:center; color: #1565c0; margin-bottom: 24px;">🔐 Login to Nyanyakwa Dairy System</h2>
 
 <form method="POST" style="max-width: 400px; margin: auto; padding: 20px; border: 1px solid #ccc; border-radius: 10px; background: #fdfdfd;">
-    {{ csrf_token() }}
-
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    
     <div style="margin-bottom: 15px;">
         <label for="username" style="font-weight: bold;">Username:</label>
         <input type="text" id="username" name="username" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc;">

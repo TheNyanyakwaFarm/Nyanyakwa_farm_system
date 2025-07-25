@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'base.html' %} 
 
 {% block title %}Milk Production Records - Nyanyakwa Dairy{% endblock %}
 
@@ -139,7 +139,7 @@
 <div class="modal fade" id="addMilkModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-xl">
     <form method="POST" action="{{ url_for('milk.record_milk') }}">
-      {{ csrf_token() }}
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title text-success">➕ Record Milk Production</h5>
@@ -176,7 +176,7 @@
                 <tr>
                   <td>{{ cow.name }}</td>
                   <td>
-                    <input type="number" step="0.01" name="milk_{{ cow.id }}" class="form-control" placeholder="0.00">
+                    <input type="number" step="0.01" min="0" name="milk_{{ cow.id }}" class="form-control" placeholder="0.00">
                     <input type="hidden" name="cattle_ids" value="{{ cow.id }}">
                   </td>
                   <td><input type="text" name="notes_{{ cow.id }}" class="form-control" placeholder="Optional"></td>

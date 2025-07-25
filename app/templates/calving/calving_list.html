@@ -75,7 +75,7 @@
                             <div class="modal fade" id="softDeleteModal{{ r.calving_id }}" tabindex="-1">
                                 <div class="modal-dialog">
                                     <form method="POST" action="{{ url_for('calving.soft_delete_calving', calving_id=r.calving_id) }}">
-                                        {{ csrf_token() }}
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <div class="modal-content">
                                             <div class="modal-header">
                                                 <h5 class="modal-title">Confirm Soft Delete</h5>
@@ -111,7 +111,7 @@
 <div class="modal fade" id="addCalvingModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <form method="POST" action="{{ url_for('calving.add_calving') }}">
-            {{ csrf_token() }}
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="modal-content">
                 <div class="modal-header bg-success text-white">
                     <h5 class="modal-title">Add Calving Record</h5>

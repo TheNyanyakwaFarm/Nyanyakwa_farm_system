@@ -3,10 +3,28 @@
 {% block title %}✏️ Edit Profile - Nyanyakwa{% endblock %}
 
 {% block content %}
-<h2>✏️ Edit My Profile</h2>
+<div class="container mt-4">
+  <h2 class="text-center text-primary mb-4">✏️ Edit My Profile</h2>
 
-<form method="POST" enctype="multipart/form-data" style="background-color: white; padding: 20px; max-width: 600px;">
-    {{ csrf_token() }}
+  <!-- ✅ Flash Messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div style="max-width: 600px; margin: 0 auto 20px;">
+        {% for category, message in messages %}
+          <div style="padding: 10px; border-left: 5px solid 
+            {% if category == 'success' %}green
+            {% elif category == 'danger' %}red
+            {% elif category == 'warning' %}orange
+            {% else %}gray{% endif %}; background: #f9f9f9; margin-bottom: 10px;">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <form method="POST" enctype="multipart/form-data" style="background-color: white; padding: 20px; max-width: 600px; margin: auto; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.05);">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
     <label>First Name:</label>
     <input type="text" name="first_name" value="{{ user.first_name or '' }}" required style="width: 100%; padding: 8px;"><br><br>
@@ -26,9 +44,18 @@
     <label>Qualification:</label>
     <input type="text" name="qualification" value="{{ user.qualification or '' }}" style="width: 100%; padding: 8px;"><br><br>
 
-    <label>Profile Picture:</label>
+    <!-- ✅ Preview existing profile pic -->
+    {% if user.profile_pic %}
+      <div style="margin-bottom: 15px;">
+        <label>Current Profile Picture:</label><br>
+        <img src="{{ url_for('static', filename='uploads/' ~ user.profile_pic) }}" alt="Profile Pic" style="height: 80px; border-radius: 8px; margin-top: 5px;">
+      </div>
+    {% endif %}
+
+    <label>Upload New Profile Picture:</label>
     <input type="file" name="profile_pic" accept="image/*" style="width: 100%; padding: 8px;"><br><br>
 
     <button type="submit" style="padding: 10px 20px; background-color: #1a237e; color: white; border: none;">Update</button>
-</form>
+  </form>
+</div>
 {% endblock %}

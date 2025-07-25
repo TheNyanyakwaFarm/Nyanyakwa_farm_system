@@ -78,7 +78,8 @@
                 <div class="modal fade" id="editBreedingModal{{ record.id }}" tabindex="-1">
                     <div class="modal-dialog modal-lg">
                         <form method="POST" action="{{ url_for('breeding.edit_breeding', id=record.id) }}">
-                            {{ csrf_token() }}
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+							
                             <div class="modal-content">
                                 <div class="modal-header bg-warning">
                                     <h5 class="modal-title">Edit Breeding - {{ record.tag_number }}</h5>
@@ -147,7 +148,8 @@
                 <div class="modal fade" id="pregnancyModal{{ record.id }}" tabindex="-1">
                     <div class="modal-dialog">
                         <form method="POST" action="{{ url_for('breeding.update_pregnancy', id=record.id) }}">
-                            {{ csrf_token() }}
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                             <div class="modal-content">
                                 <div class="modal-header bg-success text-white">
                                     <h5 class="modal-title">Update Pregnancy - {{ record.tag_number }}</h5>
@@ -181,7 +183,8 @@
 <div class="modal fade" id="addBreedingModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <form method="POST" action="{{ url_for('breeding.breeding_list') }}">
-            {{ csrf_token() }}
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title">Add Breeding Record</h5>
