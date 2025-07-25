@@ -28,7 +28,7 @@ def calving_list():
     cursor.execute("""
         SELECT DISTINCT ca.cattle_id, ca.tag_number, ca.name
         FROM cattle ca
-        JOIN breeding b ON ca.cattle_id = b.cattle_id
+        JOIN breeding_records b ON ca.cattle_id = b.cattle_id
         WHERE b.steaming_date <= CURRENT_DATE
           AND ca.is_active = TRUE
         ORDER BY ca.tag_number
@@ -57,7 +57,7 @@ def add_calving():
         cursor.execute("""
             SELECT ca.tag_number, ca.name
             FROM cattle ca
-            JOIN breeding b ON ca.cattle_id = b.cattle_id
+            JOIN breeding_records b ON ca.cattle_id = b.cattle_id
             WHERE ca.cattle_id = %s AND b.steaming_date IS NOT NULL
               AND b.steaming_date <= CURRENT_DATE
               AND ca.is_active = TRUE
@@ -115,7 +115,7 @@ def add_calving():
     cursor.execute("""
         SELECT DISTINCT ca.cattle_id, ca.tag_number, ca.name
         FROM cattle ca
-        JOIN breeding b ON ca.cattle_id = b.cattle_id
+        JOIN breeding_records b ON ca.cattle_id = b.cattle_id
         WHERE b.steaming_date <= CURRENT_DATE
           AND ca.is_active = TRUE
         ORDER BY ca.tag_number

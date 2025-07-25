@@ -3,6 +3,8 @@ from datetime import date as dt_date
 from database import get_db, get_cursor
 from app.utils.decorators import login_required, admin_required
 from app.utils.status_updater import update_cattle_statuses
+from datetime import datetime  # ✅ add at the top if not already present
+
 
 milk_bp = Blueprint('milk', __name__)
 
@@ -60,11 +62,11 @@ def milk_list():
         LEFT JOIN users u ON mp.recorded_by = u.id
         LEFT JOIN (
             SELECT 
-                cattle_id, 
+                calving.cattle_id, 
                 MAX(calving_date) AS latest_calving_date
             FROM calving
-            WHERE is_active = TRUE
-            GROUP BY cattle_id
+            WHERE calving.is_active = TRUE
+           GROUP BY calving.cattle_id
         ) lc ON lc.cattle_id = c.cattle_id
         {where_sql}
         ORDER BY 
@@ -105,7 +107,7 @@ def milk_list():
         FROM milk_production mp
         JOIN cattle c ON mp.cattle_id = c.cattle_id
         WHERE c.is_active = TRUE
-        GROUP BY week_start
+        GROUP BY DATE_TRUNC('week', mp.date)
         ORDER BY week_start DESC
         LIMIT 4
     ''')
@@ -119,7 +121,7 @@ def milk_list():
         FROM milk_production mp
         JOIN cattle c ON mp.cattle_id = c.cattle_id
         WHERE c.is_active = TRUE
-        GROUP BY month
+        GROUP BY DATE_TRUNC('month', mp.date)
         ORDER BY month DESC
         LIMIT 6
     ''')
@@ -149,7 +151,9 @@ def record_milk():
     db = get_db()
     cursor = get_cursor()
 
-    today = request.form.get('date') or dt_date.today()
+   
+    today_str = request.form.get('date')
+    today = datetime.strptime(today_str, '%Y-%m-%d').date() if today_str else dt_date.today()
     session_type = request.form.get('session')
     recorded_by = session['user_id']
 
