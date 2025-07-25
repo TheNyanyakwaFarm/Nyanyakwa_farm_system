@@ -6,8 +6,8 @@ from app.utils.status_updater import update_cattle_statuses
 from app.utils.status_logic import determine_initial_status
 from app.utils.decorators import login_required, admin_required
 
-
 cattle_bp = Blueprint('cattle', __name__, url_prefix='/cattle')
+
 
 # ✅ List Cattle (with pagination, filtering)
 @cattle_bp.route('/')
@@ -40,9 +40,10 @@ def cattle_list():
         query += " AND status_category = %s"
         params.append(status_category)
 
-    count_query = f"SELECT COUNT(*) FROM ({query}) AS filtered"
+    count_query = f"SELECT COUNT(*) AS total FROM ({query}) AS filtered"
     cursor.execute(count_query, params)
-    total_records = cursor.fetchone()[0]
+    count_row = cursor.fetchone()
+    total_records = count_row['total'] if count_row else 0
     total_pages = (total_records + per_page - 1) // per_page
 
     query += " ORDER BY cattle_id DESC LIMIT %s OFFSET %s"
@@ -55,6 +56,7 @@ def cattle_list():
         current_page=page,
         total_pages=total_pages
     )
+
 
 # ✅ Add Cattle
 @cattle_bp.route('/add', methods=['POST'])
@@ -110,6 +112,7 @@ def add_cattle():
 
     return redirect(url_for('cattle.cattle_list'))
 
+
 # ✅ Edit Cattle
 @cattle_bp.route('/edit/<int:cattle_id>', methods=['GET', 'POST'])
 @login_required
@@ -142,6 +145,7 @@ def edit_cattle(cattle_id):
     cattle = cursor.fetchone()
     return render_template('cattle/edit_cattle.html', cattle=cattle)
 
+
 # ✅ Delete Cattle
 @cattle_bp.route('/delete/<int:cattle_id>', methods=['GET', 'POST'])
 @login_required
@@ -159,6 +163,7 @@ def delete_cattle(cattle_id):
     cursor.execute("SELECT * FROM cattle WHERE cattle_id = %s", (cattle_id,))
     cattle = cursor.fetchone()
     return render_template('cattle/delete_cattle.html', cattle=cattle)
+
 
 # ✅ Archive Cattle
 @cattle_bp.route('/archive', methods=['POST'])
