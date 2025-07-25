@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
-from app.db import get_cursor
+from database import get_cursor
 from app.utils.decorators import login_required
 from datetime import datetime, timedelta
 
