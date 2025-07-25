@@ -18,7 +18,7 @@ def breeding_list():
     cursor = get_cursor()
     cursor.execute("""
         SELECT b.*, c.tag_number, u.username
-        FROM breeding b
+        FROM breeding_records b
         JOIN cattle c ON b.cattle_id = c.id
         JOIN users u ON b.recorded_by = u.id
         WHERE b.remark IS DISTINCT FROM 'deleted'
@@ -57,7 +57,7 @@ def add_breeding():
             return redirect(url_for("breeding.add_breeding"))
 
         cursor.execute("""
-            INSERT INTO breeding (
+            INSERT INTO breeding_records (
                 cattle_id, recorded_by, method, semen_type, semen_price, semen_batch_number,
                 sire_name, breeding_date, breeding_attempt_number, notes, steaming_date,
                 pregnancy_check_date, pregnancy_test_result, created_at, breeding_outcome, remark,
