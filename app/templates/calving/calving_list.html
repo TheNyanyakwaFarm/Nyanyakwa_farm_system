@@ -42,7 +42,7 @@
                     <th>Recorded By</th>
                     <th>Recorded On</th>
                     <th>Remark</th>
-                    {% if session['role'] == 'admin' %}
+                    {% if session.get('role') == 'admin' %}
                     <th>Actions</th>
                     {% endif %}
                 </tr>
@@ -63,7 +63,7 @@
                         <td>{{ r.recorded_by }}</td>
                         <td>{{ r.created_at.strftime('%Y-%m-%d') }}</td>
                         <td>{{ r.remark }}</td>
-                        {% if session['role'] == 'admin' %}
+                        {% if session.get('role') == 'admin' %}
                         <td>
                             <!-- Soft Delete Button -->
                             <button class="btn btn-sm btn-warning" data-bs-toggle="modal"
