@@ -19,7 +19,7 @@ def breeding_list():
     cursor.execute("""
         SELECT b.*, c.tag_number, u.username
         FROM breeding_records b
-        JOIN cattle c ON b.cattle_id = c.id
+        JOIN cattle c ON b.cattle_id = c.cattle_id
         JOIN users u ON b.recorded_by = u.id
         WHERE b.remark IS DISTINCT FROM 'deleted'
         ORDER BY b.breeding_date DESC

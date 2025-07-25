@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from database import get_cursor  # Make sure this works with PostgreSQL
 
@@ -14,7 +14,16 @@ def update_cattle_statuses(db):
 
     for c in all_cattle:
         try:
-            birth_date = datetime.strptime(c['birth_date'], "%Y-%m-%d")
+            b = c['birth_date']
+            if isinstance(b, str):
+                birth_date = datetime.strptime(b, "%Y-%m-%d").date()
+            elif isinstance(b, datetime):
+                birth_date = b.date()
+            elif isinstance(b, date):
+                birth_date = b
+            else:
+                raise ValueError("Unrecognized birth_date format")
+
         except Exception as e:
             print(f"[SKIP] Invalid birth_date for {c['tag_number']}: {e}")
             continue

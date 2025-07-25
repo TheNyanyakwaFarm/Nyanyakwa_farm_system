@@ -56,7 +56,7 @@ def milk_list():
             mp.notes,
             lc.latest_calving_date
         FROM milk_production mp
-        JOIN cattle c ON mp.cattle_id = c.id
+        JOIN cattle c ON mp.cattle_id = c.cattle_id
         LEFT JOIN users u ON mp.recorded_by = u.id
         LEFT JOIN (
             SELECT 
@@ -65,7 +65,7 @@ def milk_list():
             FROM calving
             WHERE is_active = TRUE
             GROUP BY cattle_id
-        ) lc ON lc.cattle_id = c.id
+        ) lc ON lc.cattle_id = c.cattle_id
         {where_sql}
         ORDER BY 
             lc.latest_calving_date DESC NULLS LAST,
@@ -103,7 +103,7 @@ def milk_list():
         SELECT DATE_TRUNC('week', mp.date) AS week_start,
                SUM(COALESCE(mp.morning_milk, 0) + COALESCE(mp.mid_day_milk, 0) + COALESCE(mp.evening_milk, 0)) AS total_milk
         FROM milk_production mp
-        JOIN cattle c ON mp.cattle_id = c.id
+        JOIN cattle c ON mp.cattle_id = c.cattle_id
         WHERE c.is_active = TRUE
         GROUP BY week_start
         ORDER BY week_start DESC
@@ -117,7 +117,7 @@ def milk_list():
         SELECT DATE_TRUNC('month', mp.date) AS month,
                SUM(COALESCE(mp.morning_milk, 0) + COALESCE(mp.mid_day_milk, 0) + COALESCE(mp.evening_milk, 0)) AS total_milk
         FROM milk_production mp
-        JOIN cattle c ON mp.cattle_id = c.id
+        JOIN cattle c ON mp.cattle_id = c.cattle_id
         WHERE c.is_active = TRUE
         GROUP BY month
         ORDER BY month DESC

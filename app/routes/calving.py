@@ -91,7 +91,8 @@ def add_calving():
             SELECT MAX(CAST(SUBSTRING(tag_number FROM '[0-9]+') AS INTEGER))
             FROM cattle WHERE tag_number LIKE %s
         """, (f'{tag_prefix}%',))
-        max_tag = cursor.fetchone()[0] if cursor.rowcount else 0
+        row = cursor.fetchone()
+        max_tag = row[0] if row and row[0] is not None else 0
         next_tag_number = f"{tag_prefix}{(max_tag + 1) if max_tag else 1:04}"
 
         # Insert calf into cattle table
