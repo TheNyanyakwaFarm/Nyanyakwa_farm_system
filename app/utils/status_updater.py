@@ -4,7 +4,11 @@ from database import get_cursor  # Make sure this works with PostgreSQL
 
 
 def calculate_age_in_months(birth_date):
-    return (datetime.today() - birth_date).days // 30
+    if isinstance(birth_date, datetime):  # Ensure it's a date, not datetime
+        birth_date = birth_date.date()
+    today = date.today()
+    delta = relativedelta(today, birth_date)
+    return delta.years * 12 + delta.months
 
 
 def update_cattle_statuses(db):
