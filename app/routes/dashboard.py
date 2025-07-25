@@ -39,7 +39,7 @@ def dashboard():
         # Recent calvings in the last 30 days
         cursor.execute("""
             SELECT COUNT(*) AS total FROM calving 
-            WHERE is_active = TRUE AND calving_date >= CURRENT_DATE - INTERVAL '30 days'
+            WHERE is_active = TRUE AND birth_date >= CURRENT_DATE - INTERVAL '30 days'
         """)
         row = cursor.fetchone()
         stats['recent_calvings'] = row['total'] if row else 0
