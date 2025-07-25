@@ -47,7 +47,7 @@
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('cattle.cattle_list') }}">Cattle</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('milk.milk_list') }}">Milk</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('breeding.list_breeding') }}">Breeding</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('breeding.breeding_list') }}">Breeding</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('calving.calving_list') }}">Calving</a></li>
 
                     {% if session['role'] == 'admin' %}
