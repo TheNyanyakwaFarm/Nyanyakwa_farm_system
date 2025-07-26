@@ -37,7 +37,7 @@
 <!-- ✅ Navigation Bar -->
 <nav class="navbar navbar-expand-lg fixed-top navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="{{ url_for('dashboard.home') }}">🐄 The Nyanyakwa Farm Home Page</a>
+        <a class="navbar-brand" href="{{ url_for('dashboard.home') }}">🐄 TNF Home Page</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
             <span class="navbar-toggler-icon"></span>
         </button>
@@ -45,11 +45,11 @@
         <div class="collapse navbar-collapse" id="navbarContent">
             {% if 'user_id' in session %}
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-				    <li class="nav-item"><a class="nav-link" href="{{ url_for('dashboard.dashboard') }}">Dashboard</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('cattle.cattle_list') }}">Cattle</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('milk.milk_list') }}">Milk</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('breeding.breeding_list') }}">Breeding</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('calving.calving_list') }}">Calving</a></li>
+				    <li class="nav-item"><a class="nav-link" href="{{ url_for('dashboard.dashboard') }}">TNF Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('cattle.cattle_list') }}">Cattle records</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('milk.milk_list') }}">Milk records</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('breeding.breeding_list') }}">Breeding records</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('calving.calving_list') }}">Calving records</a></li>
 
                     {% if session['role'] == 'admin' %}
                         <li class="nav-item"><a class="nav-link" href="{{ url_for('user.manage_users') }}">Users</a></li>
