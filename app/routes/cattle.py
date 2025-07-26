@@ -68,7 +68,7 @@ def add_cattle():
     name = request.form['name']
     breed = request.form['breed']
     birth_date_str = request.form['birth_date']
-    sex = request.form['sex'].strip().title()
+    sex = request.form.get('sex').lower()
     remark = request.form['remark']
 
     # Validate and parse birth date
@@ -100,7 +100,7 @@ def add_cattle():
     status_category = None
     age_months = (datetime.today().year - birth_date.year) * 12 + (datetime.today().month - birth_date.month)
 
-    if sex == 'Female':
+    if sex == 'female':
         if age_months <= 10:
             status_category, status = determine_initial_status(sex, birth_date)
         else:
@@ -117,7 +117,7 @@ def add_cattle():
                 flash("Invalid or missing status category for female cattle over 10 months old.", "danger")
                 return redirect(url_for('cattle.cattle_list'))
 
-    elif sex == 'Male':
+    elif sex == 'male':
         status_category, status = determine_initial_status(sex, birth_date)
         if not status_category or not status:
             flash("Unable to determine status for male cattle.", "danger")
@@ -131,11 +131,11 @@ def add_cattle():
     try:
         cursor.execute('''
             INSERT INTO cattle (
-                name, tag_number, breed, birth_date, sex,
+                cattle_id, name, tag_number, breed, birth_date, sex,
                 status_category, status, recorded_by, is_active, remark
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, TRUE, %s)
         ''', (
-            name, tag_number, breed, birth_date, sex.upper(),
+            cattle_id, name, tag_number, breed, birth_date, sex.upper(),
             status_category, status, session['user_id'], remark
         ))
         db.commit()
