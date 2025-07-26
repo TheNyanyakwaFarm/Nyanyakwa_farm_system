@@ -41,7 +41,11 @@
           <th>Age</th>
           <th>Status</th>
           <th>Status Category</th>
-          <th>Actions</th>
+          {% if not view_archived %}
+            <th>Actions</th>
+          {% else %}
+            <th>Remark</th>
+          {% endif %}
         </tr>
       </thead>
       <tbody>
@@ -56,10 +60,18 @@
             <td>{{ cattle.age_in_months }} months</td>
             <td>{{ cattle.status or '—' }}</td>
             <td>{{ cattle.status_category or '—' }}</td>
-            <td>
-              <a href="{{ url_for('cattle.edit_cattle', cattle_id=cattle.cattle_id) }}" class="btn btn-sm btn-warning">Edit</a>
-              <a href="{{ url_for('cattle.delete_cattle', cattle_id=cattle.cattle_id) }}" class="btn btn-sm btn-danger">Delete</a>
-            </td>
+            {% if not view_archived %}
+              <td>
+                <a href="{{ url_for('cattle.edit_cattle', cattle_id=cattle.cattle_id) }}" class="btn btn-sm btn-warning">Edit</a>
+                <a href="{{ url_for('cattle.delete_cattle', cattle_id=cattle.cattle_id) }}" class="btn btn-sm btn-danger">Delete</a>
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-toggle="modal"
+                        data-bs-target="#archiveModal" data-cattle-id="{{ cattle.cattle_id }}">
+                  Archive
+                </button>
+              </td>
+            {% else %}
+              <td><span class="badge bg-secondary">{{ cattle.remark or '—' }}</span></td>
+            {% endif %}
           </tr>
         {% endfor %}
       </tbody>
@@ -77,12 +89,11 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body row g-3">
-
           <div class="col-md-6">
             <label>Name</label>
             <input type="text" class="form-control" name="name">
           </div>
-		  <div class="col-md-6">
+          <div class="col-md-6">
             <label>Breed</label>
             <input type="text" class="form-control" name="breed">
           </div>
@@ -101,7 +112,7 @@
             </select>
           </div>
 
-          <!-- Age-Based Status Fields (shown only for female) -->
+          <!-- Age-Based Status Fields -->
           <div class="col-12" id="statusPromptWrapper" style="display: none; margin-top: 10px;">
             <div id="statusPrompt" style="color: #2e7d32; font-style: italic; margin-bottom: 5px;">
               This female is 11 months or older. Please choose status category and status
@@ -127,7 +138,6 @@
             <label>Notes</label>
             <textarea class="form-control" name="remark" rows="2"></textarea>
           </div>
-
         </div>
         <div class="modal-footer">
           <button type="submit" class="btn btn-success">Save</button>
@@ -138,7 +148,34 @@
   </div>
 </div>
 
-<!-- JS to control age/status logic -->
+<!-- Archive Modal -->
+<div class="modal fade" id="archiveModal" tabindex="-1" aria-labelledby="archiveModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <form method="POST" action="{{ url_for('cattle.archive_cattle') }}">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="archiveModalLabel">Archive Cattle</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" name="cattle_id" id="archiveCattleId">
+          <label for="remark" class="form-label">Reason for Archiving</label>
+          <select class="form-select" name="remark" id="remark" required>
+            <option value="">-- Select Remark --</option>
+            <option value="sold">Sold</option>
+            <option value="dead">Dead</option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-warning">Archive</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- JS for Status Field Logic -->
 <script>
   function calculateAgeInMonths(birthDate) {
     const birth = new Date(birthDate);
@@ -194,6 +231,15 @@
     });
 
     updateStatusFields();
+  });
+
+  // Archive Modal Logic
+  const archiveModal = document.getElementById('archiveModal');
+  archiveModal.addEventListener('show.bs.modal', function (event) {
+    const button = event.relatedTarget;
+    const cattleId = button.getAttribute('data-cattle-id');
+    const input = archiveModal.querySelector('#archiveCattleId');
+    input.value = cattleId;
   });
 </script>
 {% endblock %}
