@@ -40,6 +40,10 @@ def milk_list():
         params.extend([f"%{search_query}%", f"%{search_query}%"])
 
     where_sql = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+    
+    # Sanitize where_sql: remove leading WHERE if accidentally included
+    if where_sql.strip().lower().startswith("where "):
+        where_sql = where_sql.strip()[6:]
 
     # ✅ Base query with filters
     base_query = f'''
@@ -90,6 +94,7 @@ def milk_list():
                     CURRENT_DATE <= lb.latest_breeding_date + INTERVAL '7 months'
                 )
             )
+            AND c.is_active = TRUE
             {f"AND {where_sql}" if where_sql else ""}
         ORDER BY 
             lc.latest_calving_date DESC NULLS LAST,
