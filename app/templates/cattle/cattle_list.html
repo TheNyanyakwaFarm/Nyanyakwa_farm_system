@@ -131,44 +131,61 @@
 
 <!-- Scripts -->
 <script>
-function calculateAgeInMonths(birthDateStr) {
-  const today = new Date();
-  const birthDate = new Date(birthDateStr);
-  let months = (today.getFullYear() - birthDate.getFullYear()) * 12;
-  months -= birthDate.getMonth();
-  months += today.getMonth();
-  return months <= 0 ? 0 : months;
-}
+  // Calculate age in full months between birth date and today
+  function calculateAgeInMonths(birthDateStr) {
+    const today = new Date();
+    const birthDate = new Date(birthDateStr);
+    let months = (today.getFullYear() - birthDate.getFullYear()) * 12;
+    months -= birthDate.getMonth();
+    months += today.getMonth();
+    return Math.max(0, months); // Ensure non-negative
+  }
 
-function updateStatusFields() {
-  const sex = document.querySelector('select[name="sex"]').value;
-  const birthDate = document.querySelector('input[name="birth_date"]').value;
-  const statusPrompt = document.getElementById('statusPrompt');
-  const matureStatusSelect = document.getElementById('matureStatusSelect');
+  // Show/hide status prompts based on sex and age
+  function updateStatusFields() {
+    const sexInput = document.querySelector('select[name="sex"]');
+    const birthDateInput = document.querySelector('input[name="birth_date"]');
+    const statusPrompt = document.getElementById('statusPrompt');
+    const matureStatusSelect = document.getElementById('matureStatusSelect');
 
-  if (sex === 'female' && birthDate) {
-    const ageMonths = calculateAgeInMonths(birthDate);
-    if (ageMonths >= 11) {
-      statusPrompt.style.display = 'block';
+    const sex = sexInput?.value.trim().toLowerCase();
+    const birthDate = birthDateInput?.value;
+
+    if (sex === 'female' && birthDate) {
+      const ageMonths = calculateAgeInMonths(birthDate);
+      if (ageMonths >= 11) {
+        statusPrompt.style.display = 'block';
+      } else {
+        statusPrompt.style.display = 'none';
+        matureStatusSelect.style.display = 'none';
+      }
     } else {
       statusPrompt.style.display = 'none';
       matureStatusSelect.style.display = 'none';
     }
-  } else {
-    statusPrompt.style.display = 'none';
-    matureStatusSelect.style.display = 'none';
   }
-}
 
-document.querySelector('input[name="birth_date"]').addEventListener('change', updateStatusFields);
-document.querySelector('select[name="sex"]').addEventListener('change', updateStatusFields);
-
-document.querySelectorAll('input[name="status_category"]').forEach(radio => {
-  radio.addEventListener('change', function () {
+  // Wait for the DOM to be fully loaded before attaching listeners
+  document.addEventListener('DOMContentLoaded', function () {
+    const birthDateInput = document.querySelector('input[name="birth_date"]');
+    const sexInput = document.querySelector('select[name="sex"]');
+    const statusRadios = document.querySelectorAll('input[name="status_category"]');
     const matureStatusSelect = document.getElementById('matureStatusSelect');
-    matureStatusSelect.style.display = (this.value === 'mature_stock') ? 'block' : 'none';
+
+    birthDateInput?.addEventListener('change', updateStatusFields);
+    sexInput?.addEventListener('change', updateStatusFields);
+
+    statusRadios.forEach(radio => {
+      radio.addEventListener('change', function () {
+        if (this.value === 'mature_stock') {
+          matureStatusSelect.style.display = 'block';
+        } else {
+          matureStatusSelect.style.display = 'none';
+        }
+      });
+    });
   });
-});
+</script>
 
 // Modal close outside click
 window.onclick = function(event) {

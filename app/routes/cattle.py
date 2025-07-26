@@ -68,7 +68,7 @@ def add_cattle():
     name = request.form['name']
     breed = request.form['breed']
     birth_date_str = request.form['birth_date']
-    sex = request.form['sex'].strip().lower()
+    sex = request.form['sex'].strip().title()
     remark = request.form['remark']
 
     # Validate and parse birth date
