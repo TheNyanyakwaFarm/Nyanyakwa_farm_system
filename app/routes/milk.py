@@ -42,57 +42,60 @@ def milk_list():
     where_sql = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
 
     # ✅ Base query with filters
-base_query = f'''
-    SELECT 
-        mp.id,
-        mp.date,
-        mp.cattle_id,
-        c.tag_number,
-        c.name AS cattle_name,
-        c.status,
-        c.status_category,
-        mp.morning_milk,
-        mp.mid_day_milk,
-        mp.evening_milk,
-        u.username AS recorded_by,
-        mp.notes,
-        lc.latest_calving_date
-    FROM milk_production mp
-    JOIN cattle c ON mp.cattle_id = c.cattle_id
-    LEFT JOIN users u ON mp.recorded_by = u.id
-
-    -- Latest calving date per cow
-    LEFT JOIN (
+    base_query = f'''
         SELECT 
-            dam_id, 
-            MAX(calving_date) AS latest_calving_date
-        FROM calving
-        WHERE is_active = TRUE
-        GROUP BY dam_id
-    ) lc ON lc.dam_id = c.cattle_id
+            mp.id,
+            mp.date,
+            mp.cattle_id,
+            c.tag_number,
+            c.name AS cattle_name,
+            c.status,
+            c.status_category,
+            mp.morning_milk,
+            mp.mid_day_milk,
+            mp.evening_milk,
+            u.username AS recorded_by,
+            mp.notes,
+            lc.latest_calving_date
+        FROM milk_production mp
+        JOIN cattle c ON mp.cattle_id = c.cattle_id
+        LEFT JOIN users u ON mp.recorded_by = u.id
 
-    -- Latest breeding date per cow
-    LEFT JOIN (
-        SELECT 
-            cattle_id,
-            MAX(breeding_date) AS latest_breeding_date
-        FROM breeding
-        WHERE is_active = TRUE
-        GROUP BY cattle_id
-    ) lb ON lb.cattle_id = c.cattle_id
+        -- Latest calving date per cow
+        LEFT JOIN (
+            SELECT 
+                dam_id, 
+                MAX(calving_date) AS latest_calving_date
+            FROM calving
+            WHERE is_active = TRUE
+            GROUP BY dam_id
+        ) lc ON lc.dam_id = c.cattle_id
 
-    WHERE 
-        c.status IN ('lactating', 'lactating in_calf')
-        AND (
-            c.status != 'lactating in_calf' OR
-            (lb.latest_breeding_date IS NOT NULL AND CURRENT_DATE <= lb.latest_breeding_date + INTERVAL '7 months')
-        )
-        {f"AND {where_sql}" if where_sql else ""}
-    ORDER BY 
-        lc.latest_calving_date DESC NULLS LAST,
-        mp.date DESC,
-        mp.id DESC
-'''
+        -- Latest breeding date per cow
+        LEFT JOIN (
+            SELECT 
+                cattle_id,
+                MAX(breeding_date) AS latest_breeding_date
+            FROM breeding
+            WHERE is_active = TRUE
+            GROUP BY cattle_id
+        ) lb ON lb.cattle_id = c.cattle_id
+
+        WHERE 
+            c.status IN ('lactating', 'lactating in_calf')
+            AND (
+                c.status != 'lactating in_calf' OR
+                (
+                    lb.latest_breeding_date IS NOT NULL AND 
+                    CURRENT_DATE <= lb.latest_breeding_date + INTERVAL '7 months'
+                )
+            )
+            {f"AND {where_sql}" if where_sql else ""}
+        ORDER BY 
+            lc.latest_calving_date DESC NULLS LAST,
+            mp.date DESC,
+            mp.id DESC
+    '''
 
 
 
