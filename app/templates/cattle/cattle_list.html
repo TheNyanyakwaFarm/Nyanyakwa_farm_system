@@ -32,8 +32,8 @@
     <table class="table table-bordered table-hover">
       <thead class="table-light">
         <tr>
-          <th>Tag Number</th>
           <th>Cattle ID</th>
+		  <th>Tag Number</th> 
           <th>Name</th>
           <th>Sex</th>
           <th>Breed</th>
@@ -80,11 +80,6 @@
         <div class="modal-body row g-3">
 
           <div class="col-md-6">
-            <label>Tag Number</label>
-            <input type="text" class="form-control" name="tag_number" required>
-          </div>
-
-          <div class="col-md-6">
             <label>Name</label>
             <input type="text" class="form-control" name="name">
           </div>
@@ -111,7 +106,7 @@
           <!-- Age-Based Status Fields (shown only for female) -->
           <div class="col-12" id="statusPromptWrapper" style="display: none; margin-top: 10px;">
             <div id="statusPrompt" style="color: #2e7d32; font-style: italic; margin-bottom: 5px;">
-              This animal is over 11 months — consider assigning a mature stock category.
+              This female is 11 months or older. Please choose status category and status
             </div>
 
             <label>Status Category:</label><br>
