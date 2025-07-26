@@ -68,15 +68,17 @@ def add_cattle():
     name = request.form['name']
     breed = request.form['breed']
     birth_date_str = request.form['birth_date']
-    sex = request.form['sex']
+    sex = request.form['sex'].strip().lower()
     remark = request.form['remark']
 
+    # Validate and parse birth date
     try:
         birth_date = datetime.strptime(birth_date_str, '%Y-%m-%d').date()
     except ValueError:
         flash("Invalid birth date format", "danger")
         return redirect(url_for('cattle.cattle_list'))
 
+    # Generate tag number
     today = datetime.today()
     prefix = "TNF"
     month = today.strftime('%m')
@@ -92,18 +94,50 @@ def add_cattle():
         next_number = 1
 
     tag_number = f"{prefix}{str(next_number).zfill(4)}/{month}/{year}"
-    status_category, status = determine_initial_status(sex, birth_date)
 
-    if not status_category:
-        status_category = request.form.get('status_category')
-        status = 'bullying heifer' if status_category == 'young_stock' else request.form.get('status')
+    # Determine status and category
+    status = None
+    status_category = None
+    age_months = (datetime.today().year - birth_date.year) * 12 + (datetime.today().month - birth_date.month)
 
+    if sex == 'female':
+        if age_months <= 10:
+            status_category, status = determine_initial_status(sex, birth_date)
+        else:
+            # Expect user selection for 11+ month old females
+            status_category = request.form.get('status_category')
+            if status_category == 'young_stock':
+                status = 'bullying heifer'
+            elif status_category == 'mature_stock':
+                status = request.form.get('status')
+                if not status:
+                    flash("Please select a valid status for mature stock cattle.", "danger")
+                    return redirect(url_for('cattle.cattle_list'))
+            else:
+                flash("Invalid or missing status category for female cattle over 10 months old.", "danger")
+                return redirect(url_for('cattle.cattle_list'))
+
+    elif sex == 'male':
+        status_category, status = determine_initial_status(sex, birth_date)
+        if not status_category or not status:
+            flash("Unable to determine status for male cattle.", "danger")
+            return redirect(url_for('cattle.cattle_list'))
+
+    else:
+        flash("Invalid sex value.", "danger")
+        return redirect(url_for('cattle.cattle_list'))
+
+    # Insert into database
     try:
         cursor.execute('''
-            INSERT INTO cattle (name, tag_number, breed, birth_date, sex,
-            status_category, status, recorded_by, is_active, remark)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, TRUE, %s)
-        ''', (name, tag_number, breed, birth_date, sex, status_category, status, session['user_id'], remark))
+            INSERT INTO cattle (
+                name, tag_number, breed, birth_date, sex,
+                status_category, status, recorded_by, is_active, remark
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, TRUE, %s)
+        ''', (
+            name, tag_number, breed, birth_date, sex.upper(),
+            status_category, status, session['user_id'], remark
+        ))
         db.commit()
         update_cattle_statuses(db)
         flash(f"Cattle added successfully. Tag Number: {tag_number}", "success")

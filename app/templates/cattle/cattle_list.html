@@ -6,7 +6,7 @@
 <h2 style="text-align: center; color: #2e7d32;">🐄 Cattle List</h2>
 
 <!-- 🔍 Filters -->
-<form method="get" class="filter-form" style="margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px;">
+<form method="get" class="filter-form" style="margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
   <input type="text" name="search" placeholder="Search..." value="{{ request.args.get('search', '') }}">
   <select name="sex">
     <option value="">Sex</option>
@@ -19,49 +19,47 @@
     <option value="mature_stock" {% if request.args.get('status_category') == 'mature_stock' %}selected{% endif %}>Mature Stock</option>
   </select>
   <button type="submit">🔍 Filter</button>
+  <button type="button" onclick="document.getElementById('addModal').style.display='block'" style="margin-left:auto;">➕ Add Cattle</button>
 </form>
-
-<!-- ➕ Add Cattle (Modal Trigger) -->
-<button onclick="document.getElementById('addModal').style.display='block'">➕ Add Cattle</button>
 
 <!-- 🐄 Cattle Table -->
 <form method="post" action="{{ url_for('cattle.archive_cattle') }}">
-<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-<table border="1" cellpadding="8" cellspacing="0" width="100%">
-  <thead>
-    <tr>
-      <th>Tag</th>
-      <th>Name</th>
-      <th>Breed</th>
-      <th>Sex</th>
-      <th>Birth Date</th>
-      <th>Status</th>
-      <th>Remark</th>
-      {% if session.get('role') == 'admin' %}<th>Actions</th>{% endif %}
-    </tr>
-  </thead>
-  <tbody>
-    {% for c in cattle %}
-    <tr>
-      <td>{{ c.tag_number }}</td>
-      <td>{{ c.name or '-' }}</td>
-      <td>{{ c.breed or '-' }}</td>
-      <td>{{ c.sex.title() }}</td>
-      <td>{{ c.birth_date }}</td>
-      <td>{{ c.status_category }} - {{ c.status }}</td>
-      <td>{{ c.remark }}</td>
-      {% if session.get('role') == 'admin' %}
-      <td>
-        <a href="{{ url_for('cattle.edit_cattle', cattle_id=c.cattle_id) }}">✏️</a>
-        <a href="{{ url_for('cattle.delete_cattle', cattle_id=c.cattle_id) }}">🗑️</a>
-        <button type="submit" name="cattle_id" value="{{ c.cattle_id }}" onclick="return confirm('Archive this record?')">📦</button>
-        <input type="hidden" name="remark" value="archived">
-      </td>
-      {% endif %}
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <table border="1" cellpadding="8" cellspacing="0" width="100%">
+    <thead>
+      <tr>
+        <th>Tag</th>
+        <th>Name</th>
+        <th>Breed</th>
+        <th>Sex</th>
+        <th>Birth Date</th>
+        <th>Status Category & Status</th>
+        <th>Remark</th>
+        {% if session.get('role') == 'admin' %}<th>Actions</th>{% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in cattle %}
+      <tr>
+        <td>{{ c.tag_number }}</td>
+        <td>{{ c.name or '-' }}</td>
+        <td>{{ c.breed or '-' }}</td>
+        <td>{{ c.sex.title() }}</td>
+        <td>{{ c.birth_date }}</td>
+        <td>{{ c.status_category }} - {{ c.status }}</td>
+        <td>{{ c.remark }}</td>
+        {% if session.get('role') == 'admin' %}
+        <td>
+          <a href="{{ url_for('cattle.edit_cattle', cattle_id=c.cattle_id) }}">✏️</a>
+          <a href="{{ url_for('cattle.delete_cattle', cattle_id=c.cattle_id) }}">🗑️</a>
+          <button type="submit" name="cattle_id" value="{{ c.cattle_id }}" onclick="return confirm('Archive this record?')">📦</button>
+          <input type="hidden" name="remark" value="archived">
+        </td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </form>
 
 <!-- Pagination -->
@@ -84,14 +82,22 @@
     <h3>Add New Cattle</h3>
     <form method="post" action="{{ url_for('cattle.add_cattle') }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <label>Name:</label><input type="text" name="name" required><br>
-      <label>Breed:</label><input type="text" name="breed"><br>
-      <label>Birth Date:</label><input type="date" name="birth_date" required><br>
+      
+      <label>Name:</label>
+      <input type="text" name="name" required><br>
+      
+      <label>Breed:</label>
+      <input type="text" name="breed"><br>
+      
+      <label>Birth Date:</label>
+      <input type="date" name="birth_date" required><br>
+      
       <label>Sex:</label>
       <select name="sex" required>
         <option value="male">Male</option>
         <option value="female">Female</option>
       </select><br>
+      
       <label>Remark:</label>
       <select name="remark">
         <option value="active" selected>Active</option>
@@ -99,29 +105,76 @@
         <option value="dead">Dead</option>
         <option value="archived">Archived</option>
       </select><br>
-      <div id="statusPrompt" style="display: none;">
-        <label>Status Category:</label>
+
+      <!-- Age-Based Status Fields -->
+      <div id="statusPrompt" style="display: none; margin-top:10px;">
+        <label>Status Category:</label><br>
         <input type="radio" name="status_category" value="young_stock" checked> Young Stock<br>
         <input type="radio" name="status_category" value="mature_stock"> Mature Stock<br>
-        <div id="matureStatusSelect" style="display: none;">
+
+        <div id="matureStatusSelect" style="display: none; margin-top:5px;">
           <label>Status:</label>
           <select name="status">
+            <option value="">-- Select Status --</option>
             <option value="lactating">Lactating</option>
             <option value="lactating in_calf">Lactating In Calf</option>
             <option value="dry">Dry</option>
+            <option value="in_calf heifer">In Calf Heifer</option>
           </select>
         </div>
       </div>
-      <button type="submit">Add Cattle</button>
+
+      <button type="submit" style="margin-top:10px;">Add Cattle</button>
     </form>
   </div>
 </div>
 
+<!-- Scripts -->
 <script>
+function calculateAgeInMonths(birthDateStr) {
+  const today = new Date();
+  const birthDate = new Date(birthDateStr);
+  let months = (today.getFullYear() - birthDate.getFullYear()) * 12;
+  months -= birthDate.getMonth();
+  months += today.getMonth();
+  return months <= 0 ? 0 : months;
+}
+
+function updateStatusFields() {
+  const sex = document.querySelector('select[name="sex"]').value;
+  const birthDate = document.querySelector('input[name="birth_date"]').value;
+  const statusPrompt = document.getElementById('statusPrompt');
+  const matureStatusSelect = document.getElementById('matureStatusSelect');
+
+  if (sex === 'female' && birthDate) {
+    const ageMonths = calculateAgeInMonths(birthDate);
+    if (ageMonths >= 11) {
+      statusPrompt.style.display = 'block';
+    } else {
+      statusPrompt.style.display = 'none';
+      matureStatusSelect.style.display = 'none';
+    }
+  } else {
+    statusPrompt.style.display = 'none';
+    matureStatusSelect.style.display = 'none';
+  }
+}
+
+document.querySelector('input[name="birth_date"]').addEventListener('change', updateStatusFields);
+document.querySelector('select[name="sex"]').addEventListener('change', updateStatusFields);
+
+document.querySelectorAll('input[name="status_category"]').forEach(radio => {
+  radio.addEventListener('change', function () {
+    const matureStatusSelect = document.getElementById('matureStatusSelect');
+    matureStatusSelect.style.display = (this.value === 'mature_stock') ? 'block' : 'none';
+  });
+});
+
 // Modal close outside click
 window.onclick = function(event) {
   const modal = document.getElementById('addModal');
   if (event.target == modal) modal.style.display = "none";
 };
 </script>
+
 {% endblock %}
