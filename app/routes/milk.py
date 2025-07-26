@@ -118,7 +118,7 @@ def milk_list():
 
     # ✅ Get all active cattle
     cursor.execute("""
-        SELECT id, name, status, status_category
+        SELECT cattle_id, name, status, status_category
         FROM cattle
         WHERE is_active = TRUE
         ORDER BY name ASC
