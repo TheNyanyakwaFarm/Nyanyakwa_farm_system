@@ -100,7 +100,7 @@ def add_cattle():
     status_category = None
     age_months = (datetime.today().year - birth_date.year) * 12 + (datetime.today().month - birth_date.month)
 
-    if sex == 'female':
+    if sex == 'Female':
         if age_months <= 10:
             status_category, status = determine_initial_status(sex, birth_date)
         else:
@@ -117,7 +117,7 @@ def add_cattle():
                 flash("Invalid or missing status category for female cattle over 10 months old.", "danger")
                 return redirect(url_for('cattle.cattle_list'))
 
-    elif sex == 'male':
+    elif sex == 'Male':
         status_category, status = determine_initial_status(sex, birth_date)
         if not status_category or not status:
             flash("Unable to determine status for male cattle.", "danger")
