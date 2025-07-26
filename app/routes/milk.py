@@ -80,7 +80,7 @@ def milk_list():
             SELECT 
                 cattle_id,
                 MAX(breeding_date) AS latest_breeding_date
-            FROM breeding
+            FROM breeding_records
             WHERE is_active = TRUE
             GROUP BY cattle_id
         ) lb ON lb.cattle_id = c.cattle_id
