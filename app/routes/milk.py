@@ -69,7 +69,7 @@ def milk_list():
         LEFT JOIN (
             SELECT 
                 dam_id, 
-                MAX(calving_date) AS latest_calving_date
+                MAX(birth_date) AS latest_calving_date
             FROM calving
             WHERE is_active = TRUE
             GROUP BY dam_id
