@@ -194,7 +194,7 @@ def delete_cattle(cattle_id):
 
     cursor.execute("SELECT * FROM cattle WHERE cattle_id = %s", (cattle_id,))
     cattle = cursor.fetchone()
-    return render_template('cattle/delete_cattle.html', cattle=cattle)
+    return render_template('cattle/cattle_list.html', cattle=cattle)
 
 
 # ✅ Archive Cattle

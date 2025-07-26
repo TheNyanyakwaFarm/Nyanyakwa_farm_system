@@ -141,26 +141,45 @@ def add_user():
     username = form['username']
     email = form.get('email')
 
-    # 🔍 Check if username/email already exists
+    # 🔒 Check if username/email already exists
     cursor.execute("SELECT id FROM users WHERE username = %s OR email = %s", (username, email))
     if cursor.fetchone():
         flash("Username or email already exists.", "danger")
         return redirect(url_for('user.manage_users'))
 
+    # ✅ Hash password
     hashed_password = generate_password_hash(form['password'])
 
+    # ✅ Helper function for safe integer conversion
+    def safe_int(value):
+        return int(value) if value and value.isdigit() else None
+
+    # ✅ Extract and sanitize form inputs
+    first_name = form.get('first_name')
+    last_name = form.get('last_name')
+    age = safe_int(form.get('age'))
+    national_id = safe_int(form.get('national_id'))
+    address = form.get('address')
+    qualification = form.get('qualification')
+    phone = safe_int(form.get('phone'))
+    role = form.get('role')
+
+    # ✅ Insert user into database
     cursor.execute("""
-        INSERT INTO users (username, password, role, first_name, last_name, age,
-                           national_id, address, qualification, email, phone)
+        INSERT INTO users (
+            username, password, role, first_name, last_name, age,
+            national_id, address, qualification, email, phone
+        )
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """, (
-        username, hashed_password, form['role'], form.get('first_name'), form.get('last_name'),
-        form.get('age'), form.get('national_id'), form.get('address'),
-        form.get('qualification'), email, form.get('phone')
+        username, hashed_password, role, first_name, last_name, age,
+        national_id, address, qualification, email, phone
     ))
     db.commit()
+
     flash("User added successfully.", "success")
     return redirect(url_for('user.manage_users'))
+
 
 # ✏️ Edit User
 @user_bp.route('/edit_user', methods=['POST'])
