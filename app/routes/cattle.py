@@ -1,6 +1,6 @@
-# ✅ cattle.py (Updated with pagination, filtering, admin control)
+# ✅ cattle.py (Updated with pagination, filtering, admin control, and status logic)
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
-from datetime import datetime
+from datetime import datetime, date
 from database import get_db, get_cursor
 from app.utils.status_updater import update_cattle_statuses
 from app.utils.status_logic import determine_initial_status
@@ -96,9 +96,7 @@ def add_cattle():
     tag_number = f"{prefix}{str(next_number).zfill(4)}/{month}/{year}"
 
     # Determine status and category
-    status = None
-    status_category = None
-    age_months = (datetime.today().year - birth_date.year) * 12 + (datetime.today().month - birth_date.month)
+    age_months = (date.today().year - birth_date.year) * 12 + (date.today().month - birth_date.month)
 
     if sex == 'female':
         if age_months <= 10:
@@ -131,11 +129,11 @@ def add_cattle():
     try:
         cursor.execute('''
             INSERT INTO cattle (
-                cattle_id, name, tag_number, breed, birth_date, sex,
+               name, tag_number, breed, birth_date, sex,
                 status_category, status, recorded_by, is_active, remark
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, TRUE, %s)
         ''', (
-            cattle_id, name, tag_number, breed, birth_date, sex.upper(),
+            name, tag_number, breed, birth_date, sex.upper(),
             status_category, status, session['user_id'], remark
         ))
         db.commit()

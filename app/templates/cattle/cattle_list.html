@@ -32,8 +32,8 @@
     <table class="table table-bordered table-hover">
       <thead class="table-light">
         <tr>
-          <th>Cattle ID</th>
-		  <th>Tag Number</th> 
+          <th>ID</th>
+          <th>Tag Number</th> 
           <th>Name</th>
           <th>Sex</th>
           <th>Breed</th>
@@ -45,9 +45,9 @@
         </tr>
       </thead>
       <tbody>
-        {% for cattle in cattle_list %}
+        {% for cattle in cattle %}
           <tr>
-		    <td>{{ cattle.cattle_id }}</td>
+            <td>{{ cattle.cattle_id }}</td>
             <td>{{ cattle.tag_number }}</td>
             <td>{{ cattle.name }}</td>
             <td>{{ cattle.sex }}</td>
@@ -57,9 +57,8 @@
             <td>{{ cattle.status or '—' }}</td>
             <td>{{ cattle.status_category or '—' }}</td>
             <td>
-              <!-- Edit/Delete Buttons (You can link modals here too) -->
-              <a href="{{ url_for('cattle.edit_cattle', cattle_id=cattle.id) }}" class="btn btn-sm btn-warning">Edit</a>
-              <a href="{{ url_for('cattle.delete_cattle', cattle_id=cattle.id) }}" class="btn btn-sm btn-danger">Delete</a>
+              <a href="{{ url_for('cattle.edit_cattle', cattle_id=cattle.cattle_id) }}" class="btn btn-sm btn-warning">Edit</a>
+              <a href="{{ url_for('cattle.delete_cattle', cattle_id=cattle.cattle_id) }}" class="btn btn-sm btn-danger">Delete</a>
             </td>
           </tr>
         {% endfor %}
@@ -83,6 +82,15 @@
             <label>Name</label>
             <input type="text" class="form-control" name="name">
           </div>
+		  <div class="col-md-6">
+            <label>Breed</label>
+            <input type="text" class="form-control" name="breed">
+          </div>
+
+          <div class="col-md-6">
+            <label>Birth Date</label>
+            <input type="date" class="form-control" name="birth_date" required>
+          </div>
 
           <div class="col-md-6">
             <label>Sex</label>
@@ -91,16 +99,6 @@
               <option value="female">Female</option>
               <option value="male">Male</option>
             </select>
-          </div>
-
-          <div class="col-md-6">
-            <label>Breed</label>
-            <input type="text" class="form-control" name="breed">
-          </div>
-
-          <div class="col-md-6">
-            <label>Birth Date</label>
-            <input type="date" class="form-control" name="birth_date" required>
           </div>
 
           <!-- Age-Based Status Fields (shown only for female) -->
@@ -127,7 +125,7 @@
 
           <div class="col-12">
             <label>Notes</label>
-            <textarea class="form-control" name="notes" rows="2"></textarea>
+            <textarea class="form-control" name="remark" rows="2"></textarea>
           </div>
 
         </div>
@@ -195,7 +193,7 @@
       });
     });
 
-    updateStatusFields(); // Run on initial load
+    updateStatusFields();
   });
 </script>
 {% endblock %}
